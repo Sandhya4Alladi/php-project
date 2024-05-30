@@ -18,6 +18,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 
         public function actionIndex(){
             echo "User Authentication page";
+            $this->render('forgotpw');
         }
 
         public function actionSignup(){
@@ -72,6 +73,8 @@ use PHPMailer\PHPMailer\PHPMailer;
                 Yii::app()->end();
             }
         }
+
+        
 
         
 
