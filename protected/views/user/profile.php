@@ -1,3 +1,7 @@
+<?php
+$jsonData = CJSON::encode($userId);
+?>
+ 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,22 +49,10 @@
                   <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search" name="search">
                 </form>
                 </li>&nbsp;&nbsp;&nbsp;&nbsp;
-                  <li class="nav-item mr-3" >
-                    <form class="form-inline" method="get" action="/customs" >
-                      <button style="padding-right: 10px;" class="btn btn-outline-light my-2 my-sm-0" type="submit">
-                        <i style="font-size:20px" class="fa">&#xf013;</i>
-                      </button>
-                    </form>
-                  </li>&nbsp;&nbsp;&nbsp;&nbsp;
-                
-              <!-- <li class="nav-item ml-3">
-                <form class="form-inline">
-                  <button style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" type="submit"><i class="fas fa-bell"></i>
-                </form>
-              </li>&nbsp;&nbsp;&nbsp;&nbsp; -->
+                 
               <li class="nav-item ml-3">
-                <form class="form-inline" method="get" action="/users/find">
-                  <button style="padding-right: 10px;" style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" type="submit"><i class="fas fa-user"></i>
+                <form class="form-inline" method="get">
+                   <button style="padding-right: 10px;" style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" type="submit" formaction="<?php echo Yii::app()->createUrl('/user/profile'); ?>"><i class="fas fa-user"></i>
                 </form>
               </li>&nbsp;&nbsp;&nbsp;&nbsp;
               <li class="nav-item ml-3"></li>
@@ -78,9 +70,6 @@
               <div class="modal-content">
                 <div class="modal-header">
                   <h5 class="modal-title" id="confirmationModalLabel">Confirm Logut</h5>
-                  <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button> -->
                 </div>
                 <div class="modal-body">
                   Are you sure you want to logout?
@@ -129,13 +118,13 @@
                         <div class="mb-3 row" style="display: inline-flex;">
                             <label for="inputUsername" class="col-sm-4 col-form-label">Username</label>
                             <div class="col-sm-12">
-                                <input type="text" class="form-control" id="inputUsername" value="<%= user.username %>" disabled>
+                                <input type="text" class="form-control" id="inputUsername" value="<?php echo $userId->username;?>" disabled>
                             </div>
                         </div>
                         <div class="mb-3 row" style="display: inline-flex;">
                             <label for="inputEmail" class="col-sm-4 col-form-label">Email ID</label>
                             <div class="col-sm-12">
-                                <input type="email" class="form-control" id="inputEmail" value="<%= user.email %>" disabled>
+                                <input type="email" class="form-control" id="inputEmail" value="<?php echo $userId->email;?>" disabled>
                             </div>
                         </div>
                         <div class="text-center">
@@ -147,13 +136,13 @@
             </div>
         </div>
     </section>
-    <script>
-              const userId = '<%= user._id %>'; 
+    <script>  
+              const userId = <?php echo $jsonData; ?>; 
     </script>
-    <script src="../js/profile.js"></script>
+    <script src="/public/js/profile.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="../js/confirm.js"></script>
-    <script src="../js/logo.js"></script>
+    <script src="/public/js/confirm.js"></script>
+    <script src="/public/js/logo.js"></script>
 </body>
 </html>

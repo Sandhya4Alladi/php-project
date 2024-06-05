@@ -29,18 +29,16 @@
                 if ($this->getIsNewRecord()) {
                     $this->createdAt = $time;
                 }
-        
-                // Set updatedAt for every save
                 $this->updatedAt = $time;
         
-                // Hash the password
+                // $this->password = CPasswordHelper::hashPassword($this->password);
+
                 $this->password = sha1($this->password);
         
                 return true;
             }
             return false;
         }
-        
         
         public static function model($className = __CLASS__) {
             return parent::model($className);

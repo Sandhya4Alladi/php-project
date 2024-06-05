@@ -1,10 +1,14 @@
+<?php
+$jsonData = CJSON::encode($data);
+?>
+ 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamBox</title>
-    <link rel="icon" type="image/png" href="../images/play.png">
+    <link rel="icon" type="image/png" href="/public/images/play.png">
     <!-- Bootstrap CSS -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome CSS -->
@@ -14,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Protest+Strike&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/public/css/home.css">
     <!-- <link rel="stylesheet" href="../css/video-player.css"> -->
 </head>
 <style>
@@ -31,22 +35,22 @@
 .navbar-nav{
 margin-right: 100px;
 }
-
+ 
 .main-body {
 display: flex;
 flex-direction: row;
 height: calc(100vh - 114px);
-
+ 
 }
 .main-body .main {
 padding: 15px;
 width: 100%;
 }
-
+ 
 .main {
 overflow: auto;
 }
-
+ 
 #videos {
 display:  flex;
 flex-wrap:  wrap;
@@ -54,7 +58,7 @@ gap: 15px;
 height: calc(100vh - 114px);
 cursor: pointer;
 }
-
+ 
 .card {
 position: relative;
 height: 300px;
@@ -64,7 +68,7 @@ border: 1px solid #ccc;
 -moz-box-shadow: 0px 0px 38px -16px rgba(0,0,0,0.75);
 box-shadow: 0px 0px 38px -16px rgba(0,0,0,0.75);
 }
-
+ 
 .card button {
 text-align: center;
 font-size: medium;
@@ -72,13 +76,13 @@ font-family: "Protest Strike", sans-serif;
 font-weight: 150;
 font-style: normal;
 }
-
+ 
 .card img {
 width: 100%;
 height: 100%;
 overflow: hidden;
 }
-
+ 
 .overlay {
 display: none;
 position: absolute;
@@ -92,7 +96,7 @@ align-items: center;
 background: rgba(0, 0, 0, 0);
 transition: all 0.5s ease;
 }
-
+ 
 .material-symbols-outlined {
 font-size: 3rem;
 font-variation-settings:
@@ -101,7 +105,7 @@ font-variation-settings:
 'GRAD' 0,
 'opsz' 48
 }
-
+ 
 .explore-tags{
 display: none;
 }
@@ -109,8 +113,8 @@ display: none;
 <body>
 <div id="page-content-wrapper">
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <button class="navbar-brand p-2 btn btn-primary" id="streambox-logo" >
-    <img src="<?php echo Yii::app()->baseUrl . '/assets/images/homelogo.jpg';?>" class="img-fluid" alt="logo" width="50">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>STREAMBOX</b>
+    <button class="navbar-brand p-2 btn btn-primary" id="streambox-logo">
+        <img src="/public/images/homelogo.jpg" class="img-fluid" alt="logo" width="50">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>STREAMBOX</b>
     </button>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -123,23 +127,10 @@ display: none;
             <button class="btn btn-outline-light my-2 my-sm-0" type="submit" id="searchBtn"><i class="fas fa-search"></i></button>
           </form>
         </li>
-            <li class="nav-item mr-3">
-              <form class="form-inline" method="get" action="/customs" >
-                <button style="padding-right: 10px;" class="btn btn-outline-light my-2 my-sm-0" type="submit">
-                  <i style="font-size:20px" class="fa">&#xf013;</i>
-                </button>
-              </form>
-            </li>
-          
-        <!-- <li class="nav-item ml-3">
-          <form class="form-inline">
-            <button style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" type="submit"><i class="fas fa-bell"></i>
-          </form>
-        </li> -->
-
+      
         <li class="nav-item ml-3">
-          <form class="form-inline" method="get" action="/users/find">
-            <button style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" type="submit"><i class="fas fa-user"></i>
+          <form class="form-inline" method="get">
+            <button style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" formaction="<?php echo Yii::app()->createUrl('/user/profile'); ?>" type="submit" ><i class="fas fa-user"></i>
           </form>
         </li>
         <li class="nav-item ml-3"></li>
@@ -177,9 +168,9 @@ display: none;
 <div class="d-flex" id="wrapper">
   <!-- Sidebar -->
   <div class="sidebar" id="sidebar-wrapper">
-
+ 
       <div class="list-group list-group-flush ">
-        <form method="get" action="/home">
+        <form method="get" action="/video/home">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
               <i class="fas fa-home"></i> &nbsp;&nbsp;Home
           </button>
@@ -189,69 +180,76 @@ display: none;
                 <i class="fas fa-compass"></i> &nbsp;&nbsp;Explore
             </button>
             <div class="explore-tags">
-                  <form method="get" action="/videos/tags/product-trainings">
-                      <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Product Training
+                  <form method="get" action="/video/tags">
+                      <input type="hidden" name="tag" value="product-trainings">
+                      <button type="submit" class="list-group-item list-group-item-action" style="border: none; outline: none;">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Product Training
                       </button>
                   </form>
-                  <form method="get" action="/videos/tags/process-trainings">
-                    <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Process Training
-                    </button>
-                  </form>
-                  <form method="get" action="/videos/tags/hr-induction">
-                      <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;HR Induction
+                  <form method="get" action="/video/tags">
+                      <input type="hidden" name="tag" value="process-trainings">
+                      <button type="submit" class="list-group-item list-group-item-action" style="border: none; outline: none;">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Process Training
                       </button>
                   </form>
-                  <form method="get" action="/videos/tags/infosec-compliance">
-                      <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;InfoSec
+                  <form method="get" action="/video/tags">
+                      <input type="hidden" name="tag" value="hr-induction">
+                      <button type="submit" class="list-group-item list-group-item-action" style="border: none; outline: none;">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;HR Induction
                       </button>
                   </form>
-                  <form method="get" action="/videos/tags/soft-skills">
-                    <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Soft Skills
-                    </button>
-                  </form>
-                  <form method="get" action="/videos/tags/webinars">
-                      <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Webinars
+                  <form method="get" action="/video/tags">
+                      <input type="hidden" name="tag" value="infosec-compliance">
+                      <button type="submit" class="list-group-item list-group-item-action" style="border: none; outline: none;">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Infosec Compliance
                       </button>
                   </form>
-                  <form method="get" action="/videos/tags/events">
-                    <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Events
-                    </button>
+                  <form method="get" action="/video/tags">
+                      <input type="hidden" name="tag" value="soft-skills">
+                      <button type="submit" class="list-group-item list-group-item-action" style="border: none; outline: none;">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Soft Skills
+                      </button>
+                  </form>
+                  <form method="get" action="/video/tags">
+                      <input type="hidden" name="tag" value="webinars">
+                      <button type="submit" class="list-group-item list-group-item-action" style="border: none; outline: none;">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Webinars
+                      </button>
+                  </form>
+                  <form method="get" action="/video/tags">
+                      <input type="hidden" name="tag" value="events">
+                      <button type="submit" class="list-group-item list-group-item-action" style="border: none; outline: none;">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>&#x2022;</b>&nbsp;&nbsp;Events
+                      </button>
                   </form>
             </div>
           </div>
-        <form action="/videos/trend" method="get">
+        <form action="/video/trends" method="get">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
               <i class="fas fa-fire"></i> &nbsp;&nbsp;Trending
           </button>
         </form>
-        <form action="/videos/uploadvideo" method="get">
+        <form action="/video/uploadvideo" method="get">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
             <i class="fas fa-upload"></i> &nbsp;&nbsp; Upload a Video
           </button>
         </form>
-         <form method="get" action="/videos/myvideos">
+         <form method="get" action="/video/myvideos">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
             <i class="fa fa-video-camera"></i> &nbsp;&nbsp;My videos
           </button>
         </form>
-        <form method="get" action="/videos/analytics">
+        <form method="get" action="/video/analytics">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
             <i class="fa fa-chart-bar"></i> &nbsp;&nbsp;Analytics
           </button>
         </form>
-        <form method="get" action="/videos/likedVideos">
+        <form method="get" action="/video/likedVideos">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
               <i class="fas fa-heart"></i> &nbsp;&nbsp;Liked Videos
           </button>
         </form>
-        <form method="get" action="/videos/watchLater">
+        <form method="get" action="/video/watchLater">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
               <i class="fas fa-clock"></i> &nbsp;&nbsp;Watch Later
           </button>
@@ -267,13 +265,13 @@ display: none;
 </div> -->
 <!-- <footer>
 </footer> -->
-<script src="/static/js/cards.js"></script>
+<script src="/public/js/cards.js"></script>
     <script>
-
-        const allVideos = <%- JSON.stringify(data) %>;
-        
-        display(allVideos);
-
+ 
+    const allVideos = <?php echo $jsonData; ?>;
+    //console.log(allVideos);
+    display(allVideos);
+ 
     </script>
     <script>
       document.querySelector('.explore').addEventListener('click', function() {
@@ -287,7 +285,7 @@ display: none;
     </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="/static/js/confirm.js"></script>
-    <script src="/static/js/logo.js"></script>
+    <script src="/public/js/confirm.js"></script>
+    <script src="/public/js/logo.js"></script>
 </body>
 </html>

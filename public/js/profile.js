@@ -28,7 +28,8 @@ editButton.addEventListener('click', function() {
             email: inputEmail.value
         };
         console.log(requestBody)
-        fetch(`/users/${userId}`, {
+        
+        fetch("/user/editprofile?userId="+userId._id['$oid'], {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -56,16 +57,16 @@ deleteButton.addEventListener('click', function(event) {
   
 document.getElementById('confirmDeleteButton').addEventListener('click', function() {
     console.log('Confirmed action');
-    fetch(`/users/${userId}`, {
+    fetch("/user/deleteprofile?userId="+userId._id['$oid'], {
         method: 'DELETE'
     }).then(res => {
         if (res.ok) {
             const logoutForm = document.createElement('form');
             logoutForm.method = 'GET';
             logoutForm.action = '/auth/logout';
-
             document.body.appendChild(logoutForm);
             logoutForm.submit();
+            console.log('dfgnm');
         } else {
             console.log(error);
         }

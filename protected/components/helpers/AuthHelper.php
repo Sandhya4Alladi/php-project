@@ -1,33 +1,32 @@
 <?php
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use PHPMailer\PHPMailer\PHPMailer;
+
     class AuthHelper{
 
-        public static function emailPattern($attribute){
-            if (!preg_match('/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/', $attribute)) {
-                return false;
-            }
-                return true;
-        }
 
-        public static function passwordPattern($password){
-            $errors = array();
-
-            if (!preg_match('/[A-Z]/', $password)) {
-                $errors[] = 'Password must contain at least one uppercase letter.';
+        public static function jwtHelper(){
+            $token = Yii::app()->session['jwt_token'];
+            $secretKey = $_ENV['JWT_SECRET_KEY'];
+            try{
+                $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
+                if($decoded && isset($_COOKIE['jwt_token'])){
+                    $user_id = $decoded->user_id->{'$oid'}; 
+                    $user_email = $decoded->email;
+                    // echo $user_id;
+                    Yii::app()->session['user_id'] = $user_id;
+                    Yii::app()->session['email'] = $user_email;
+                    return true;
+                }
+               
             }
-    
-            if (!preg_match('/\d/', $password)) {
-                $errors[] = 'Password must contain at least one numeric digit.';
-            }
-    
-            if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-                $errors[] = 'Password must contain at least one special character.';
-            }
-    
-            if (strlen($password) < 6) {
-                $errors[] = 'Password must be at least 6 characters long.';
-            }
-    
-            return $errors;
+                catch(Exception $e){
+                    header('HTTP/1.0 403 Forbidden');
+                    echo 'Invalid Token';
+                    return false;
+                }
         }
          
     }

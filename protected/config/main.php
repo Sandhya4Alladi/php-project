@@ -81,7 +81,7 @@ return array(
 		'mongodb' => array(
             'class' => 'EMongoDB',
             'connectionString' => 'mongodb+srv://afrinmahammad7403:7403@cluster0.9fggrwa.mongodb.net/',
-            'dbName' => 'php-s',
+            'dbName' => 'test',
             'fsyncFlag' => true,
             'safeFlag' => true,
         ),

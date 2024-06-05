@@ -1,235 +1,217 @@
 <?php
-// echo "<pre>";
-class UserController extends Controller
-{
-	/**
-	 * @var string the default layout for the views. Defaults to '//layouts/column2', meaning
-	 * using two-column layout. See 'protected/views/layouts/column2.php'.
-	 */
-	public $layout = '//layouts/column2';
-	// public $defaultAction='create';
 
-	/**
-	 * @return array action filters
-	 *
-	 */
-	
-	public function filters()
-	{
-		return array(
-			'accessControl', // perform access control for CRUD operations
-			'postOnly + delete', // we only allow deletion via POST request
-		);
-	}
-  
+    class UserController extends Controller{
 
-	 protected function beforeAction($action){
-		echo "Hi";
-		return true;
-	 }
+        public $layout = 'sample';
 
+        public function actionIndex(){
+       
+            $authToken = Yii::app()->request->cookies['jwt_token'];
+            echo $authToken;
+        }
 
-	 protected function afterAction($action){
-		echo "bye";
-		return true;
-	 }
-	/**
-	 * Specifies the access control rules.
-	 * This method is used by the 'accessControl' filter.
-	 * @return array access control rules
-	 */
-	public function accessRules()
-	{
-		return array(
+        public function actionEditprofile(){
+            //update user
+            $userId = Yii::app()->request->getQuery('userId');
+            $id = Yii::app()->session['user_id'];
+            if($userId === $id){
+                try {
+               
+                    $user = User::model()->findByPk(new \MongoDB\BSON\ObjectId($userId));
+                    if ($user !== null) {
+                        $requestData = json_decode(file_get_contents('php://input'), true);
+                        $username = $requestData['username'];
+                        $email = $requestData['email'];
 
-			array(
-				'allow',  // allow all users to perform 'index' and 'view' actions
-				'actions' => array('index', 'view'),
-				'users' => array('*'),
-			),
+                        $user->username = $username;
+                        $user->email = $email;
+                        if ($user->save()) {
+                            echo CJSON::encode($user);
+                        } else {
+                            throw new CHttpException(500, 'Failed to update user.');
+                        }
+                    } else {
+                        throw new CHttpException(404, 'User not found.');
+                    }
+                } catch (Exception $e) {
+                    throw new CHttpException(500, $e->getMessage());
+                }
+            } else {
+                echo CJSON::encode(array('message' => 'You can update only your account!'));
+                Yii::app()->end();
+            }
 
-			array(
-				'allow',  // allow all users to perform 'index' and 'view' actions
-				'actions' => array('index', 'view'),
-				'users' => array('*'),
-			),
-			array(
-				'allow', // allow authenticated user to perform 'create' and 'update' actions
-				'actions' => array('create', 'update'),
-				'users' => array('@'),
-			),
-			array(
-				'allow', // allow admin user to perform 'admin' and 'delete' actions
-				'actions' => array('admin', 'delete'),
-				'users' => array('admin'),
-			),
-			array(
-				'deny',  // deny all users
-				'users' => array('*'),
-			),
-		);
-	}
+        }
 
-	/**
-	 * Displays a particular model.
-	 * @param integer $id the ID of the model to be displayed
-	 */
-	public function actionView($id)
-	{
-		$this->render('view', array(
-			'model' => $this->loadModel($id),
-		));
-	}
+        public function actionDeleteprofile() {
+            $userId = Yii::app()->request->getParam('userId');
+            $id = Yii::app()->session['user_id'];
+        
+            if ($userId === $id) {
+                try {
+                    $user = User::model()->findByPk(new \MongoDB\BSON\ObjectId($userId));
+        
+                    if ($user !== null) {
+                        if ($user->delete()) {
+                            Yii::app()->user->logout();
+                            $this->redirect(['/auth/logout']);
+                        } else {
+                            throw new CHttpException(500, 'Failed to delete user.');
+                        }
+                    } else {
+                        throw new CHttpException(404, 'User not found.');
+                    }
+                } catch (Exception $e) {
+                    throw new CHttpException(500, $e->getMessage());
+                }
+            } else {
+                echo CJSON::encode(array('message' => 'You can delete only your account!'));
+                Yii::app()->end();
+            }
+        }
 
+        public function actionProfile(){
+            //getUser
+            if(Yii::app()->request->getRequestType() === 'GET'){
+                $userId = Yii::app()->session['user_id'];
+                $user = User::model()->findByAttributes(array('_id'=>new \MongoDB\BSON\ObjectId($userId)));
+            }
+        
+            $this->render('profile', array('userId' => $user));
+            Yii::app()->end();
+        }
 
-	
+        public function actionLike(){
+            //like
+            $userId = Yii::app()->session['user_id']; 
+            $videoId = Yii::app()->request->getQuery('userId');
 
-	/**
-	 * Creates a new model.
-	 * If creation is successful, the browser will be redirected to the 'view' page.
-	 */
-	public function actionCreate()
-	{
-		return [
-			"create"=>"application.controllers.createAction"
-		];
-		// $model = new User;
+                try {
+                    $user = User::model()->findByPk($userId);
+                    if ($user !== null) {
+                        if (!in_array($videoId, $user->likedvideos)) {
+                            $disliked = User::model()->findByAttributes(array('_id' => $userId, 'dislikedvideos' => $videoId));
+                            if ($disliked !== null) {
+                                $user->dislikedvideos = array_diff($user->dislikedvideos, array($videoId));
+                                $user->save();
+                                $video = Video::model()->findByPk($videoId);
+                                if ($video !== null) {
+                                    $video->dislikes -= 1;
+                                    $video->save();
+                                }
+                            }
+                            $user->likedVideos[] = $videoId;
+                            $user->save();
+                            $video = Video::model()->findByPk($videoId);
+                            if ($video !== null) {
+                                $video->likes += 1;
+                                $video->save();
+                            }
+                        }
+                    } else {
+                        throw new Exception('User not found');
+                    }
+                    Yii::app()->end(json_encode("The video has been liked."));
+                } catch (Exception $e) {
+                    Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
+                }
+        }
 
-		// // Uncomment the following line if AJAX validation is needed
-		// // $this->performAjaxValidation($model);
+        public function actionDislike(){
 
-		// if (isset($_POST['User'])) {
-		// 	$model->attributes = $_POST['User'];
-		// 	$saved = $model->save();
-		// 	// echo "<pre>";print_r($model);exit;
+            $userId = Yii::app()->session['user_id'];
+            $videoId = Yii::app()->request->getQuery('userId');
 
-		// 	if ($saved) {
+            try {
+                $user = User::model()->findByPk($userId);
+                if ($user !== null) {
+                    if ($user->likedvideos && in_array($videoId, $user->likedvideos)) {
+                        $user->likedvideos = array_diff($user->likedvideos, array($videoId));
+                        $user->save();
+                        $video = Video::model()->findByPk($videoId);
+                        if ($video !== null) {
+                            $video->likes -= 1;
+                            $video->save();
+                        }
+                    }
+                    if (!in_array($videoId, $user->dislikedVideos)) {
+                        $user->dislikedVideos[] = $videoId;
+                        $user->save();
+                        $video = Video::model()->findByPk($videoId);
+                        if ($video !== null) {
+                            $video->dislikes += 1;
+                            $video->save();
+                        }
+                    }
+                } else {
+                    throw new Exception('User not found');
+                }
+                Yii::app()->end(json_encode("The video has been disliked."));
+            } catch (Exception $e) {
+                Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
+            }
 
-		// 		$this->redirect(array('view', 'id' => $model->id));
-		// 	}
-		// }
+        }
 
-		// $this->render('create', array(
-		// 	'model' => $model,
-		// 	// 'sandip'=>["test"=>"test"],
-		// ));
-	}
-	
+        public function actionwatch(){
+            //watch
+         $userId = Yii::app()->session['user_id'];
+         $videoId = Yii::app()->request->getQuery('userId');
+         try{
 
-	// public function actionRegister(){
-		 
-	// 	$model = new Register();
-	// 	if (isset($_POST['Register'])) {
-	// 			$model->attributes = $_POST['Register'];
-	// 			$saved = $model->save();
-	// 			// echo "<pre>";print_r($model);exit;
-	
-	// 			if ($saved) {
-	
-	// 				// $this->redirect(array('view', 'id' => $model->id));
-	// 				echo "Register success!";
-	// 			}
-	// 		}
-	
-	// 		$this->render('register', array(
-	// 			'model' => $model,
-	// 			// 'sandip'=>["test"=>"test"],
-	// 		));
-	// }
+            $user = User::model()->findByPk($videoId);
+             if ($user !== null) {
+                if (!in_array($videoId, $user->watchLater)) {
+                    $user->watchLater[] = $videoId;
+                    $user->save();
+                }
+         } else {
+            throw new Exception('User not found');
+            }
 
-	/**
-	 * Updates a particular model.
-	 * If update is successful, the browser will be redirected to the 'view' page.
-	 * @param integer $id the ID of the model to be updated
-	 */
-	public function actionUpdate($id)
-	{
-		$model = $this->loadModel($id);
+            }catch(Exception $e){
+                Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
+            }
+        }
+        
+        public function actionTrackstatus(){
+            //tackStatus
+            $userId = Yii::app()->session['user_id']; 
+            $videoId = Yii::app()->request->getQuery('userId');
 
-		// Uncomment the following line if AJAX validation is needed
-		// $this->performAjaxValidation($model);
+            try {
+                $user = User::model()->findByAttributes(array('_id' => $userId, 'watchlater' => $videoId));
+                if ($user !== null) {
+                    Yii::app()->end(json_encode(array('watched' => 1)));
+                } else {
+                    Yii::app()->end(json_encode(array('watched' => 0)));
+                }
+            } catch (Exception $e) {
+                Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
+                Yii::app()->end(json_encode(array('error' => $e->getMessage())));
+            }
+        }
 
-		if (isset($_POST['User'])) {
-			$model->attributes = $_POST['User'];
-			if ($model->save())
-				$this->redirect(array('view', 'id' => $model->id));
-		}
+        public function actionCheckstatus(){
 
-		$this->render('update', array(
-			'model' => $model,
-		));
-	}
+            $userId = Yii::app()->session['user_id'];  
+            try {
+                $liked = User::model()->findByAttributes(array('_id' => $userId, 'likedvideos' => $id));
+                $disliked = User::model()->findByAttributes(array('_id' => $userId, 'dislikedvideos' => $id));
+                
+                if ($liked !== null) {
+                    Yii::app()->end(json_encode(array('liked' => 1, 'disliked' => 0)));
+                } elseif ($disliked !== null) {
+                    Yii::app()->end(json_encode(array('liked' => 0, 'disliked' => 1)));
+                } else {
+                    Yii::app()->end(json_encode(array('liked' => 0, 'disliked' => 0)));
+                }
+            } catch (Exception $e) {
+                Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
+                Yii::app()->end(json_encode(array('error' => $e->getMessage())));
+            }
+        }
 
-	/**
-	 * Deletes a particular model.
-	 * If deletion is successful, the browser will be redirected to the 'admin' page.
-	 * @param integer $id the ID of the model to be deleted
-	 */
-	public function actionDelete($id)
-	{
-		$this->loadModel($id)->delete();
-
-		// if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
-		if (!isset($_GET['ajax']))
-			$this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
-	}
-
-	/**
-	 * Lists all models.
-	 */
-	public function actionIndex()
-    {
- 
-        // $model = Register::model()->findAll();
- 
-        // print_r($model); exit;
- 
- 
-        $dataProvider = new CActiveDataProvider('User');
-        $this->render('index', array(
-            'dataProvider' => $dataProvider,
-        ));	
     }
-	/**
-	 * Manages all models.
-	 */
-	public function actionAdmin()
-	{
-		$model = new User('search');
-		$model->unsetAttributes();  // clear any default values
-		if (isset($_GET['User']))
-			$model->attributes = $_GET['User'];
 
-		$this->render('admin', array(
-			'model' => $model,
-		));
-	}
-
-	/**
-	 * Returns the data model based on the primary key given in the GET variable.
-	 * If the data model is not found, an HTTP exception will be raised.
-	 * @param integer $id the ID of the model to be loaded
-	 * @return User the loaded model
-	 * @throws CHttpException
-	 */
-	public function loadModel($id)
-	{
-		$model = User::model()->findByPk($id);
-		if ($model === null)
-			throw new CHttpException(404, 'The requested page does not exist.');
-		return $model;
-	}
-
-	/**
-	 * Performs the AJAX validation.
-	 * @param User $model the model to be validated
-	 */
-	protected function performAjaxValidation($model)
-	{
-		if (isset($_POST['ajax']) && $_POST['ajax'] === 'user-form') {
-			echo CActiveForm::validate($model);
-			Yii::app()->end();
-		}
-	}
-}
-
+?>
