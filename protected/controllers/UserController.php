@@ -1,6 +1,6 @@
 <?php
 use MongoDB\BSON\ObjectId;
-use PhpParser\Node\Expr\Cast\Object_;
+
  
     class UserController extends Controller{
  
@@ -13,6 +13,17 @@ use PhpParser\Node\Expr\Cast\Object_;
             $this->render('application.views.video.player');
             Yii::app()->end();
         }
+
+        public function actionProfile(){
+            //getUser
+            if(Yii::app()->request->getRequestType() === 'GET'){
+                $userId = Yii::app()->session['user_id'];
+                $user = User::model()->findByAttributes(array('_id'=>new ObjectId($userId)));
+            }
+            
+            $this->render('profile', array('userId' => $user));
+            Yii::app()->end();
+        }
  
         public function actionEditprofile(){
             //update user
@@ -21,7 +32,7 @@ use PhpParser\Node\Expr\Cast\Object_;
             if($userId === $id){
                 try {
                
-                    $user = User::model()->findByPk(new \MongoDB\BSON\ObjectId($userId));
+                    $user = User::model()->findByPk(new ObjectId($userId));
                     if ($user !== null) {
                         $requestData = json_decode(file_get_contents('php://input'), true);
                         $username = $requestData['username'];
@@ -53,13 +64,10 @@ use PhpParser\Node\Expr\Cast\Object_;
         
             if ($userId === $id) {
                 try {
-                    $user = User::model()->findByPk(new \MongoDB\BSON\ObjectId($userId));
+                    $user = User::model()->findByPk(new ObjectId($userId));
         
                     if ($user !== null) {
                         if ($user->delete()) {
-                            // Yii::app()->user->logout();
-                            // Yii::app()->end();
-                            // $this->redirect(['/auth/logout']);
                             Yii::app()->end(CJSON::encode(array('status' => 200)));
                         } else {
                             throw new CHttpException(500, 'Failed to delete user.');
@@ -74,17 +82,6 @@ use PhpParser\Node\Expr\Cast\Object_;
                 echo CJSON::encode(array('message' => 'You can delete only your account!'));
                 Yii::app()->end();
             }
-        }
- 
-        public function actionProfile(){
-            //getUser
-            if(Yii::app()->request->getRequestType() === 'GET'){
-                $userId = Yii::app()->session['user_id'];
-                $user = User::model()->findByAttributes(array('_id'=>new \MongoDB\BSON\ObjectId($userId)));
-            }
-        
-            $this->render('profile', array('userId' => $user));
-            Yii::app()->end();
         }
  
         public function actionLike(){

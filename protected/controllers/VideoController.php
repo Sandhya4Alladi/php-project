@@ -1,5 +1,5 @@
 <?php
- 
+ use MongoDB\BSON\ObjectId;
 class VideoController extends Controller {
     
  
@@ -26,8 +26,8 @@ class VideoController extends Controller {
     }
  
     //addvideo
-    public function actionAddVideo()
-    {
+    public function actionAddVideo(){
+
         if (isset($_POST['title'], $_FILES['videoFile'], $_FILES['imageFile'])) {
             try {
                 $videoFile = CUploadedFile::getInstanceByName('videoFile');
@@ -49,7 +49,7 @@ class VideoController extends Controller {
                 print_r($imageUrl);
  
                 $newVideo = new Video();
-                $newVideo->userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+                $newVideo->userId = new ObjectId(Yii::app()->session['user_id']);
                 $newVideo->title = $_POST['title'];
                 $newVideo->desc = $_POST['desc'];
                 $newVideo->imgKey = $imageObjectKey;
@@ -95,7 +95,7 @@ class VideoController extends Controller {
         try {
  
             $criteria = new EMongoCriteria();
-            $criteria->userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+            $criteria->userId = new ObjectId(Yii::app()->session['user_id']);
  
             $videos = Video::model()->findAll($criteria);
  
@@ -107,11 +107,10 @@ class VideoController extends Controller {
     }
  
     //getMyFav
-    public function actionLikedVideos()
-    {
+    public function actionLikedVideos(){
         try {
             
-            $userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+            $userId = new ObjectId(Yii::app()->session['user_id']);
  
             $user = User::model()->findByAttributes(array('_id' => $userId));
  
@@ -133,10 +132,9 @@ class VideoController extends Controller {
     }
  
     //getWatchLater
-    public function actionWatchLater()
-    {
+    public function actionWatchLater(){
         try {
-            $userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+            $userId = new ObjectId(Yii::app()->session['user_id']);
  
             $criteria = new EMongoCriteria();
             $criteria->_id = $userId;
@@ -160,11 +158,10 @@ class VideoController extends Controller {
     }
  
     //deleteVideo
-    public function actionDeleteVideo()
-    {
+    public function actionDeleteVideo(){
         try {
             $id = Yii::app()->request->getQuery('videoId');
-            $video = Video::model()->findByPk(new MongoDB\BSON\ObjectId($id));
+            $video = Video::model()->findByPk(new ObjectId($id));
             
             if ($video === null) {
                 throw new CHttpException(404, 'Video not found!');
@@ -173,8 +170,8 @@ class VideoController extends Controller {
             $imgKey = $video->imgKey;
             $videoKey = $video->videoKey;
             $captionsKey = $video->captionsKey;
-            $userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
-            $videoId = new MongoDB\BSON\ObjectId($id);
+            $userId = new ObjectId(Yii::app()->session['user_id']);
+            $videoId = new ObjectId($id);
  
             if ($userId == $video->userId) {
                 $criteria = new EMongoCriteria();
@@ -235,10 +232,9 @@ class VideoController extends Controller {
     }
  
     //AddView
-    public function actionAddView()
-    {
+    public function actionAddView(){
         try {
-            $videoId = new MongoDB\BSON\ObjectId(Yii::app()->request->getQuery('id'));
+            $videoId = new ObjectId(Yii::app()->request->getQuery('id'));
             $video = Video::model()->findByPk($videoId);
  
             if (!$video) {
@@ -263,10 +259,9 @@ class VideoController extends Controller {
     }
  
     //Plays
-    public function actionAddPlay()
-    {
+    public function actionAddPlay(){
         try {
-            $videoId = new MongoDB\BSON\ObjectId(Yii::app()->request->getQuery('id'));
+            $videoId = new ObjectId(Yii::app()->request->getQuery('id'));
  
             $video = Video::model()->findByPk($videoId);
          
@@ -291,8 +286,7 @@ class VideoController extends Controller {
     }
     
     //Trend
-    public function actionTrends()
-    {
+    public function actionTrends() {
         try {
             $criteria = new EMongoCriteria();
             $criteria->sort('views', EMongoCriteria::SORT_DESC);
@@ -306,8 +300,7 @@ class VideoController extends Controller {
         }
     }
  
-    public function actionTags()
-    {
+    public function actionTags(){
         $tag = Yii::app()->request->getQuery('tag');
  
         try {
@@ -325,8 +318,8 @@ class VideoController extends Controller {
     }
  
     //search-----------------------
-    public function actionSearch()
-    {
+    public function actionSearch() {
+
         $query = "hr";
  
         if ($query === '') {
@@ -361,8 +354,7 @@ class VideoController extends Controller {
         }
     }
  
-    public function actionPlayVideo()
-    {
+    public function actionPlayVideo(){
         $data = Yii::app()->request->getQuery('data');
         $id = Yii::app()->request->getQuery('id');
         $this->render('player', array(
@@ -373,10 +365,9 @@ class VideoController extends Controller {
  
     
  
-    public function actionAnalytics()
-    {
+    public function actionAnalytics(){
         try {
-            $userId =  new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+            $userId =  new ObjectId(Yii::app()->session['user_id']);
  
             $criteria = new EMongoCriteria();
             $criteria->userId = $userId;
@@ -432,8 +423,7 @@ class VideoController extends Controller {
         }
     }
  
-    public function actionStorePlaybackPosition($videoId)
-    {
+    public function actionStorePlaybackPosition($videoId){
         try {
             if (Yii::app()->request->isPostRequest) {
                 $data = file_get_contents('php://input');
@@ -450,8 +440,7 @@ class VideoController extends Controller {
         }
     }
  
-    public function actionFetchPlaybackPosition($videoId)
-    {
+    public function actionFetchPlaybackPosition($videoId){
         try {
             $playbackPosition = Yii::app()->session["playbackPosition_$videoId"] ?? 0;
             Yii::log(
