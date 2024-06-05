@@ -9,10 +9,10 @@ $jsonData = CJSON::encode($userId);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamBox</title>
     <link rel="icon" type="image/png" href="../images/play.png">
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/public/css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-
+ 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,11 +22,11 @@ $jsonData = CJSON::encode($userId);
         body, html {
             overflow: hidden;
         }
-
+ 
         .navbar-nav{
             margin-right: 40px;
         }
-
+ 
         button{
             border: none;
             border-radius: 8px;
@@ -107,14 +107,14 @@ $jsonData = CJSON::encode($userId);
                         </div>
                     </div>
                 </div>
-
+ 
                 <div class="logo">
                 <img src="<?php echo Yii::app()->baseUrl . '/assets/images/play.png';?>" class="img-fluid" alt="logo">
                     <h1></h1>
                     <h3>User Profile</h3>
                 </div><br><br>
                 <div class="rounded bg-white shadow p-5" id="form-div">
-                    <form method="get" action='/users/find'>
+                    <form method="get" action='/user/profile'>
                         <div class="mb-3 row" style="display: inline-flex;">
                             <label for="inputUsername" class="col-sm-4 col-form-label">Username</label>
                             <div class="col-sm-12">
@@ -137,7 +137,7 @@ $jsonData = CJSON::encode($userId);
         </div>
     </section>
     <script>  
-              const userId = <?php echo $jsonData; ?>; 
+              const userId = <?php echo $jsonData; ?>;
     </script>
     <script src="/public/js/profile.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

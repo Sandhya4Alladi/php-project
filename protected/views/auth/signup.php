@@ -21,7 +21,7 @@
     <section class="wrapper">
         <div class="container">
             <div class="col-sm-8 offset-sm-2 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4 text-center">
-
+ 
                 <div class="toast-container position-fixed bottom-0 end-0 p-3">
                     <div id="myToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
                         <div class="toast-body" id="toast-body">
@@ -62,7 +62,7 @@
                         <div class="d-flex justify-content-center" id="">
                             <button type="button" class="btn btn-primary submit_btn my-4" onclick="validateOTP()">Submit</button>
                         </div>
-                    </div> 
+                    </div>
                 </form>
                 <form class="rounded bg-white shadow p-3" method="post">
                     <div class="form-floating mb-3">
@@ -84,6 +84,14 @@
         var verifyButton = document.getElementById("verify-email-btn");
             verifyButton.addEventListener('click', function(e){
             e.preventDefault();
+            const otpInputs = document.querySelectorAll('.otpInput');
+            otpInputs.forEach(function(input, index) {
+                input.addEventListener('input', function() {
+                    if (index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                });
+            });
             var email = document.getElementsByName("email")[0].value;
             let url = '<?php echo Yii::app()->createUrl('/auth/verifymail'); ?>';
             fetch("/auth/verifymail", {
@@ -102,12 +110,12 @@
                     }else{
                         var email = document.getElementsByName("email")[0];
                         email.setAttribute('disabled', true);
-                        verifyButton.parentNode.removeChild(verifyButton); 
+                        verifyButton.parentNode.removeChild(verifyButton);
                         var otpdiv = document.getElementById("otp-div");
                         otpdiv.style.display = "block";
                         document.getElementById("d1").setAttribute('autofocus',true);
-
-
+ 
+ 
                         var email = document.getElementsByName("email")[0].value;
                         let url = '<?php echo Yii::app()->createUrl('/auth/mail'); ?>';
                             fetch(url, {
@@ -131,7 +139,7 @@
             console.error('Error:', error);
             });
         });
-
+ 
         function showToastMsg(message) {
             const myToast = document.getElementById('myToast');
             const toastbody = document.getElementById('toast-body');
@@ -175,7 +183,7 @@
                     console.error('Error:', error);
                 });
         }
-
+ 
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -41,18 +41,18 @@ editButton.addEventListener('click', function() {
                 throw new Error('Failed to update user');
             }
             console.log('User updated successfully');
-            toggleEditMode(); 
+            toggleEditMode();
         })
         .catch(error => {
             console.error('Error updating user:', error);
         });
     }
 });
-
-
+ 
+ 
 deleteButton.addEventListener('click', function(event) {
-    event.preventDefault(); 
-    $('#deleteConfirmationModal').modal('show'); 
+    event.preventDefault();
+    $('#deleteConfirmationModal').modal('show');
 });
   
 document.getElementById('confirmDeleteButton').addEventListener('click', function() {
@@ -60,13 +60,13 @@ document.getElementById('confirmDeleteButton').addEventListener('click', functio
     fetch("/user/deleteprofile?userId="+userId._id['$oid'], {
         method: 'DELETE'
     }).then(res => {
-        if (res.ok) {
-            const logoutForm = document.createElement('form');
-            logoutForm.method = 'GET';
-            logoutForm.action = '/auth/logout';
-            document.body.appendChild(logoutForm);
-            logoutForm.submit();
-            console.log('dfgnm');
+        if (res.status === 200) {
+            console.log("hi");
+            fetch('/auth/logout',{
+                method: 'GET'
+            }).then(response => {
+                window.location.href = "/auth/signup";
+            });
         } else {
             console.log(error);
         }

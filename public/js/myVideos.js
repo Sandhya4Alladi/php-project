@@ -13,7 +13,8 @@ function display(data) {
             const key = data[i].videoKey;
 
             const a = document.createElement("a");
-            a.href = `/videos/playvideo?data=${key}&id=${data[i]._id}`;
+            const id = data[i]._id.$oid;
+            a.href =  `/video/playvideo?data=${key}&id=${id}`
 
             card.appendChild(overlay);
 
@@ -49,7 +50,7 @@ function display(data) {
             deleteOption.style.backgroundColor = "red";
             deleteOption.addEventListener("click", function(event) {
                 event.preventDefault();
-                confirmDelete(data[i]._id);
+                confirmDelete(data[i]._id['$oid']);
             });
 
             dropdownMenu.appendChild(deleteOption);
@@ -67,9 +68,8 @@ function display(data) {
             titleContainer.appendChild(ellipsisButton);
 
             a.appendChild(titleContainer);
-
-            a.addEventListener("click", function () {
-                fetch("/videos/view/" + data[i]._id, {
+            title.addEventListener("click", function () {
+                fetch("/video/addview/" + data[i]._id['$oid'], {
                     method: "PUT",
                 });
             });
@@ -106,7 +106,8 @@ function confirmDelete(videoId) {
 
 async function deleteVideo(videoId) {
     try {
-        const response = await fetch(`/videos/${videoId}`, {
+        console.log(videoId);
+        const response = await fetch('/video/deletevideo?videoId='+videoId, {
             method: 'DELETE'
         });
         if (response.ok) {

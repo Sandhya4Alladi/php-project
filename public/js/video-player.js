@@ -1,6 +1,6 @@
 async function sendPlaybackPosition(position, videoId) {
   try {
-    await fetch(`/videos/playbackposition/${videoId}`, {
+    await fetch(`/video/storePlaybackPosition/${videoId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -14,14 +14,16 @@ async function sendPlaybackPosition(position, videoId) {
 
 async function fetchPlaybackPosition(videoId) {
   try {
-    const response = await fetch(`/videos/playbackposition/${videoId}`, {
+    const response = await fetch(`/video/fetchPlaybackPosition/${videoId}`, {
       method: "GET",
-      headers: {"Content-Type": "application/json"},
+      headers: { "Content-Type": "application/json" },
     });
+    console.log(response);
     const data = await response.json();
+    console.log("hi",data.playbackPosition);
     console.log(`Playback position for video ${videoId} retrieved:`, data);
     return parseFloat(data.playbackPosition);
-    } catch (error) {
+  } catch (error) {
     console.error(`Error retrieving playback position for video ${videoId}:`, error);
   }
 }

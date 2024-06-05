@@ -1,92 +1,84 @@
 <?php
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use PHPMailer\PHPMailer\PHPMailer;
-use function PHPUnit\Framework\isNull;
-
+ 
     class AuthController extends Controller{
-
+ 
         public $layout = 'sample';
   
         public function actionIndex(){
             echo "User Authentication page";
         }
-        
-        public function actionSignup(){
+ 
+        public function actionSignup() {
             $model = new User();
             try {
-                   
-                if(isset($_POST['signup'])){
-                      
+                if (isset($_POST['signup'])) {
                     $model->attributes = $_POST;
-                   
-                    $model['email'] = Yii::app()->session['email']; //email is saved while sending mail
-
-                        if($model->validate()){
-                            $model->save();
-                            $this->redirect('login');
-                            Yii::app()->end();
+                    $model->email = Yii::app()->session['email'];
+                    $model->password = password_hash($model->password, PASSWORD_BCRYPT);
+ 
+                    if ($model->validate()) {
+                        if ($model->save()) {
+                            $this->redirect(Yii::app()->createUrl('/auth/login'));
+                        } else {
+                            $this->render('signup', array('model' => $model, 'error' => 'Failed to save user'));
                         }
-                         Yii::app()->end();
+                    } else {
+                        $this->render('signup', array('model' => $model, 'error' => 'Validation failed'));
                     }
-
-                else {
-                        $this->render('signup', array(
-                            'model' => $model,
-                        ));
-                    }
-
+                } else {
+                    $this->render('signup', array('model' => $model));
+                }
             } catch (Exception $e) {
-                echo $e->getMessage();
+                $this->render('signup', array('model' => $model, 'error' => $e->getMessage()));
             }
-
         }
-
-
-        public function actionLogin(){
-                if(isset($_POST['login'])){
-                    $email = $_POST['email'];
-                    $password = $_POST['password'];
-                    // $hash = CPasswordHelper::hashPassword($password);
-                    $hashed = sha1($password);
-                    // echo $hashed;
-
-                    // Yii::app()->end();
-                    
-                    $user = User::model()->findByAttributes(array('email'=>$email, 'password'=>$hashed));
-
-                    if($user){
-                        $expiryTime = time() + (1 * 60 * 60 * 24); 
-                        $header = ['typ'=>'JWT', 'alg'=>'HS256'];
+        
+ 
+        public function actionLogin() {
+            if (isset($_POST['login'])) {
+                $email = $_POST['email'];
+                $password = $_POST['password'];
+               // echo password_hash("")
+                $user = User::model()->findByAttributes(array('email' => $email));
+                // echo "<pre>";
+                // print_r($user);
+                // echo "hi",password_verify("Afrin@123", '$2y$10$v2Iv16p1xfH31gLkb.LoZODRMuHtuspPlG1eMX7lTQ/.BzKK5U9mG'),"<br>";
+                //echo "hi",password_verify("Afrin@123", $user->password);
+                if ($user) {
+                    if (password_verify($password, $user->password)) {
+                        // echo "verified";
+                        // Yii::app()->end();
+                        $expiryTime = time() + (1 * 60 * 60 * 24);
+                        $header = ['typ' => 'JWT', 'alg' => 'HS256'];
                         $payload = array(
-                            "user_id" => $user->_id,
-                            "email" => $user->email
+                            "user_id" => (string) $user->_id
                         );
                         $secretKey = $_ENV['JWT_SECRET_KEY'];
-                        
+        
                         $token = JWT::encode($payload, $secretKey, 'HS256', null, $header);
-                        if($token){
+                        if ($token) {
                             Yii::app()->session['jwt_token'] = $token;
                             setcookie("jwt_token", $token, $expiryTime, "/", "", false, true);
                             $this->redirect(Yii::app()->createUrl('video/home'));
+                        } else {
+                            $this->render('login', array('error' => 'Token generation failed'));
                         }
-                        else{
-                            $this->render('login');
-                        }
-
+                    } else {
+                        $this->render('login', array('error' => 'Incorrect password'));
                     }
-                    else{
-                        $this->render('login');
-                    }
-                
-                    Yii::app()->end();
+                } else {
+                    $this->render('login', array('error' => 'User not found'));
                 }
-                else{
-                    $this->render('login');
-                    Yii::app()->end();
-                }
+            } else {
+                $this->render('login');
+            }
         }
-
-
+        
+ 
+ 
         public function actionMail(){
             
             
@@ -120,9 +112,10 @@ use function PHPUnit\Framework\isNull;
             }
         
         }
-
+ 
         public function actionVerifyotp(){
             if(Yii::app()->request->isPostRequest) {
+                echo "hi";
                 $data = file_get_contents('php://input');
                 $data = json_decode($data, true);
                 list($d1, $d2, $d3, $d4, $d5, $d6) = array_values($data);
@@ -131,12 +124,15 @@ use function PHPUnit\Framework\isNull;
                 echo $otp;
                 echo $otp_data;
                 if($otp==$otp_data){
+                    echo "hello";
+                    Yii::app()->end();
                    return true;
                 }
                 else{
+                    echo "bye";
+                    Yii::app()->end();
                   return false;
                 }
-
             }
             // unset(Yii::app()->session['otp']);
             else{
@@ -144,7 +140,7 @@ use function PHPUnit\Framework\isNull;
             }
             Yii::app()->end();
         }
-
+ 
         public function actionVerifymail(){
             if(Yii::app()->request->isPostRequest){
                
@@ -161,17 +157,17 @@ use function PHPUnit\Framework\isNull;
                 Yii::app()->end();
             }
         }
-
+ 
         public function actionReset(){
             $this->render('otp');
         }
-
+ 
         public function actionForgot(){
             if (Yii::app()->request->getRequestType() === 'GET') {
               $this->render('forgotpw');
             }
         }
-
+ 
         public function actionResetpw(){
            
             if(Yii::app()->request->isPostRequest){
@@ -182,12 +178,19 @@ use function PHPUnit\Framework\isNull;
                 $confirm_pw = $data['confirm_password'];
                 if($password===$confirm_pw){
                 
-                    $hashed_pw = sha1($password);
-
+                    $hashed_pw = password_hash($password, PASSWORD_BCRYPT);
+ 
                     $email = Yii::app()->session['email'];
+                    
                     $user = User::model()->findByAttributes(array('email'=>$email));
+ 
+                    // echo "<pre>";
+                    // print_r($user);
+                    // echo $user->password,"<br>";
+                    // echo $hashed_pw;
+                    // Yii::app()->end();
                     $user->password = $hashed_pw;
-
+ 
                     if($user->save()){
                         echo json_encode(array('status' => 'success', 'message' => 'password reset successfully'));
                     }
@@ -205,18 +208,21 @@ use function PHPUnit\Framework\isNull;
             }
             
         }
-
+ 
         public function actionLogout(){
-            Yii::app()->request->cookies->remove('jwt_token');
-            Yii::app()->session->destroy();
-            $this->redirect(array('/auth/signup'));
-            Yii::app()->end();
+            try{
+                Yii::app()->request->cookies->remove('jwt_token');
+                Yii::app()->session->destroy();
+                Yii::app()->end(CJSON::encode(array('status' => 200)));
+            }catch(Exception $e){
+                echo $e;
+            }
         }
-
+ 
         private function generateOTP() {
             return mt_rand(100000, 999999);
         }
-
+ 
     }
-
+ 
 ?>

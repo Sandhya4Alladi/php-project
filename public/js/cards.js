@@ -13,7 +13,8 @@ function display(data) {
       const key = data[i].videoKey;
       
       const a = document.createElement("a");
-      a.href =  `/videos/playvideo?data=${key}&id=${data[i]._id}`
+      const id = data[i]._id.$oid;
+      a.href =  `/video/playvideo?data=${key}&id=${id}`
 
       card.appendChild(overlay);
       const title = document.createElement("button")
@@ -25,9 +26,13 @@ function display(data) {
       a.appendChild(title);
 
       a.addEventListener("click", function () {
-        fetch("/videos/view/" + data[i]._id, {
+        console.log("hi")
+
+        fetch("/video/addview?id=" + id, {
           method: "PUT",
-        });
+        }).then(
+          console.log("hi")
+        );
       });
 
       const imgElement = document.createElement("img");

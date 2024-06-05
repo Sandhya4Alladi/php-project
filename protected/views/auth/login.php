@@ -1,18 +1,13 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
     <html lang="en">
-
+ 
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>StreamBox</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-        <?php
-            $baseUrl = Yii::app()->baseUrl;
-            $cs = Yii::app()->getClientScript();
-            // $cs->registerScriptFile($baseUrl . '/js/yourscript.js');
-            $cs->registerCssFile($baseUrl . '/css/style.css');
-        ?>
+        <link rel="stylesheet" href="/public/css/style.css">
         <style>
             body,
             html {
@@ -20,7 +15,7 @@
             }
         </style>
     </head>
-
+ 
     <body>
         <section class="wrapper" style="padding-top: 150px; padding-bottom: 250px;">
             <div class="container">
@@ -63,8 +58,8 @@
                 </div>
             </div>
         </section>
-
+ 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     </body>
-
+ 
     </html>

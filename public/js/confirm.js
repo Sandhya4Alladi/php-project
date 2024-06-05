@@ -9,8 +9,11 @@ document.getElementById('confirmActionButton').addEventListener('click', functio
         method: 'get'
     })
     .then(response => {
-        if(response.ok){
-            window.location.href = '/'
+        console.log(response.status);
+        if(response.status === 200){
+            window.location.href = '/auth/login'
+        }else{
+            window.location.href = '/video/home'
         }
     })
     $('#confirmationModal').modal('hide');

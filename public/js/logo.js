@@ -1,11 +1,11 @@
 const logobtn = document.getElementById("streambox-logo");
 logobtn.addEventListener("click", function () {
-    fetch("/home", {
+    fetch("/video/home", {
         method: "get",
     })
     .then((response) => {
         if (response.ok) {
-            window.location.href = "/home";
+            window.location.href = "/video/home";
         } else {
             console.error("Error fetching data:", response.status);
         }

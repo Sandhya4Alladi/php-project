@@ -1,66 +1,22 @@
 <?php
  
-use Aws\S3\S3Client;
-use MongoDB\BSON\ObjectId;
-use SebastianBergmann\Environment\Console;
- 
-class VideoController extends CController {
+class VideoController extends Controller {
+    
  
     public $layout = 'sample';
-
  
     public function actionIndex() {
         $this->render('home');
     }
  
-
-    //getHomeCrads
-    public function actionHome() {
-        try {
-            $criteria = new EMongoCriteria();
-            $criteria->setLimit(15);
-            $videos = Video::model()->findAll($criteria);
-            $this->render('home', array('data' => $videos));
-        } catch (Exception $e) {
-            Yii::log("Error fetching videos: " . $e->getMessage(), CLogger::LEVEL_ERROR);
-            throw new CHttpException(500, 'Error fetching videos.');
-        }
-    }
-
-
     public function actionGetVtt() {
-        $data = Yii::app()->request->getQuery('data');
-        //echo $data;
+        $objectKey = Yii::app()->request->getQuery('data');
  
         $bucketName = $_ENV['VTT_BUCKET'];
-        $key = $data;
- 
-        //echo $key;
-      
- 
-        // Load AWS configuration
-        $awsConfig = require(Yii::getPathOfAlias('application.config') . '/aws-config.php');
-        
-        // Initialize AWS S3 Client
-        $s3Client = new S3Client([
-            'version' => 'latest',
-            'region'  => $awsConfig['aws']['region'],
-            'credentials' => $awsConfig['aws']['credentials'],
-        ]);
  
         try {
-            $result = $s3Client->getObject([
-                'Bucket' => $bucketName,
-                'Key'    => $key,
-            ]);
- 
-            // Set headers
-            header('Content-Type: ' . $result['ContentType']);
-            header('Content-Length: ' . $result['ContentLength']);
- 
-            // Stream the file
+            $result = S3Helper::getS3Object($bucketName, $objectKey);
             echo $result['Body'];
- 
             return $result['Body'];
  
         } catch (Aws\S3\Exception\S3Exception $e) {
@@ -69,16 +25,77 @@ class VideoController extends CController {
         }
     }
  
-    //addvideo-------------------
+    //addvideo
+    public function actionAddVideo()
+    {
+        if (isset($_POST['title'], $_FILES['videoFile'], $_FILES['imageFile'])) {
+            try {
+                $videoFile = CUploadedFile::getInstanceByName('videoFile');
+                $imageFile = CUploadedFile::getInstanceByName('imageFile');
  
-   
+                $videoOriginalName = $videoFile->getName();
+                $imageOriginalName = $imageFile->getName();
+ 
+                $uniqueId = uniqid();
+                $videoObjectKey = $uniqueId . '-' . $videoOriginalName ;
+                $imageObjectKey = $uniqueId . '-' . $imageOriginalName ;
+                $vttObjectKey = $videoObjectKey . '.vtt';
+ 
+                $videoUrl = S3Helper::uploadFileToS3($_ENV['VIDEO_BUCKET'], $videoObjectKey, $videoFile->tempName, 'video/mp4');
+                echo "<pre>";
+                print_r($videoUrl);
+ 
+                $imageUrl = S3Helper::uploadFileToS3($_ENV['IMAGE_BUCKET'], $imageObjectKey, $imageFile->tempName, 'image/png');
+                print_r($imageUrl);
+ 
+                $newVideo = new Video();
+                $newVideo->userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+                $newVideo->title = $_POST['title'];
+                $newVideo->desc = $_POST['desc'];
+                $newVideo->imgKey = $imageObjectKey;
+                $newVideo->videoKey = $videoObjectKey;
+                $newVideo->captionsKey = $vttObjectKey;
+                $newVideo->tags = $_POST['tags'];
+ 
+                if ($newVideo->save()) {
+                    $this->redirect(array('video/success'));
+                } else {
+                    throw new CHttpException(500, 'Failed to save video details.');
+                }
+            } catch (Exception $e) {
+                Yii::log("Error uploading video: " . $e->getMessage(), 'error');
+                throw new CHttpException(500, 'Failed to upload video.');
+            }
+        } else {
+            $this->render('upload');
+        }
+    }
+ 
+    public function actionSuccess(){
+        $this->render('success');
+    }
+ 
+    //getHomeCrads
+    public function actionHome() {
+        try {
+            $criteria = new EMongoCriteria();
+            $criteria->setLimit(15);
+            $videos = Video::model()->findAll($criteria);
+            // echo "<pre>";
+            // print_r($videos);
+            $this->render('home', array('data' => $videos));
+        } catch (Exception $e) {
+            Yii::log("Error fetching videos: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            throw new CHttpException(500, 'Error fetching videos.');
+        }
+    }
  
     //getMyVideos
     public function actionMyVideos() {
         try {
  
             $criteria = new EMongoCriteria();
-            $criteria->userId = Yii::app()->session['jwt_payload']['user_id']->{'$oid'};
+            $criteria->userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
  
             $videos = Video::model()->findAll($criteria);
  
@@ -93,22 +110,16 @@ class VideoController extends CController {
     public function actionLikedVideos()
     {
         try {
-            $userEmail = Yii::app()->session['email'];
+            
+            $userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
  
-            $criteria = new EMongoCriteria();
-            $criteria->email = $userEmail;
- 
-            $user = User::model()->find($criteria);
- 
-            if (!$user) {
-                throw new Exception('User not found.');
-            }
+            $user = User::model()->findByAttributes(array('_id' => $userId));
  
             $likedVideos = $user->likedVideos;
             $data = array();
  
             foreach ($likedVideos as $videoId) {
-                $video = Video::model()->findByPk(new ObjectId($videoId));
+                $video = Video::model()->findByPk($videoId);
                 if ($video) {
                     $data[] = $video;
                 }
@@ -117,6 +128,7 @@ class VideoController extends CController {
             $this->render('home', array('data' => $data));
         } catch (Exception $e) {
             Yii::log("Error fetching user's liked videos: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            $this->render('error', array('message' => 'An error occurred while fetching liked videos.'));
         }
     }
  
@@ -124,22 +136,18 @@ class VideoController extends CController {
     public function actionWatchLater()
     {
         try {
-            $userEmail = Yii::app()->session['jwt_payload']['email'];
+            $userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
  
             $criteria = new EMongoCriteria();
-            $criteria->email = $userEmail;
+            $criteria->_id = $userId;
  
             $user = User::model()->find($criteria);
- 
-            if (!$user) {
-                throw new Exception('User not found.');
-            }
  
             $watchLater = $user->watchLater;
             $data = array();
  
             foreach ($watchLater as $videoId) {
-                $video = Video::model()->findByPk(new ObjectId($videoId));
+                $video = Video::model()->findByPk($videoId);
                 if ($video) {
                     $data[] = $video;
                 }
@@ -151,45 +159,106 @@ class VideoController extends CController {
         }
     }
  
-    //deleteVideo---------------------------------------------------
+    //deleteVideo
+    public function actionDeleteVideo()
+    {
+        try {
+            $id = Yii::app()->request->getQuery('videoId');
+            $video = Video::model()->findByPk(new MongoDB\BSON\ObjectId($id));
+            
+            if ($video === null) {
+                throw new CHttpException(404, 'Video not found!');
+            }
+ 
+            $imgKey = $video->imgKey;
+            $videoKey = $video->videoKey;
+            $captionsKey = $video->captionsKey;
+            $userId = new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+            $videoId = new MongoDB\BSON\ObjectId($id);
+ 
+            if ($userId == $video->userId) {
+                $criteria = new EMongoCriteria();
+                $criteria->addCond('$or', '==', [
+                    ['likedVideos' => ['$in' => [$videoId]]],
+                    ['dislikedVideos' => ['$in' => [$videoId]]],
+                    ['watchLater' => ['$in' => [$videoId]]]
+                ]);
+        
+                $users = User::model()->findAll($criteria);
+        
+                foreach ($users as $user) {
+                    $changed = false;
+ 
+                    if (($key = array_search($videoId, $user->likedVideos)) !== false) {
+                        unset($user->likedVideos[$key]);
+                        $changed = true;
+                    }
+ 
+                    if (($key = array_search($videoId, $user->dislikedVideos)) !== false) {
+                        unset($user->dislikedVideos[$key]);
+                        $changed = true;
+                    }
+ 
+                    if (($key = array_search($videoId, $user->watchLater)) !== false) {
+                        unset($user->watchLater[$key]);
+                        $changed = true;
+                    }
+ 
+                    if ($changed) {
+                        $user->save();
+                    }
+                }
+                
+                S3Helper::deleteS3Object($_ENV['IMAGE_BUCKET'], $imgKey);
+                Yii::log("Image deleted: $imgKey", 'info');
+ 
+                S3Helper::deleteS3Object($_ENV['VIDEO_BUCKET'], $videoKey);
+                Yii::log("Video deleted: $videoKey", 'info');
+ 
+                S3Helper::deleteS3Object($_ENV['VTT_BUCKET'], $captionsKey);
+                Yii::log("Caption deleted: $captionsKey", 'info');
+ 
+                $video = Video::model()->findByPk($videoId);
+               
+                if ($video) {
+                    $video->delete();
+                }
+                Yii::log("Video deleted from DB: $id", 'info');
+                echo CJSON::encode(array('success' => true, 'message' => 'The video has been deleted'));
+            } else {
+                throw new CHttpException(403, 'You can delete only your video!');
+            }
+        } catch (Exception $e) {
+            Yii::log("Error: " . $e->getMessage(), 'error');
+            throw new CHttpException(500, 'Internal Server Error');
+        }
+    }
  
     //AddView
     public function actionAddView()
     {
         try {
-            // Convert the string ID to MongoId or ObjectId
-            $videoId = new ObjectId("660f98af7ac35193d83b73a1");
- 
-            // Find the video by its ID
+            $videoId = new MongoDB\BSON\ObjectId(Yii::app()->request->getQuery('id'));
             $video = Video::model()->findByPk($videoId);
-            // print_r($video);
-            // Check if the video exists
+ 
             if (!$video) {
                 throw new CHttpException(404, "Video Not Found");
             }
  
-            // Increment the view count
             $video->views += 1;
  
-            // Save the updated video
             if ($video->save()) {
-                // Return a success response
                 header('HTTP/1.1 200 OK');
                 echo "View count incremented successfully.";
             } else {
-                // Return an error response if save fails
                 throw new CHttpException(500, "Failed to increment view count.");
             }
         } catch (Exception $e) {
-            // Log the error
             Yii::log("Error incrementing view count: " . $e->getMessage(), CLogger::LEVEL_ERROR);
- 
-            // Return a 500 internal server error
             header('HTTP/1.1 500 Internal Server Error');
             echo "Internal Server Error";
         }
  
-        // End the application to prevent Yii from rendering the view
         Yii::app()->end();
     }
  
@@ -197,39 +266,27 @@ class VideoController extends CController {
     public function actionAddPlay()
     {
         try {
-            // Convert the string ID to MongoId or ObjectId
-            $videoId = new ObjectId("660f98af7ac35193d83b73a1");
+            $videoId = new MongoDB\BSON\ObjectId(Yii::app()->request->getQuery('id'));
  
-            // Find the video by its ID
             $video = Video::model()->findByPk($videoId);
-            // print_r($video);
-            // Check if the video exists
+         
             if (!$video) {
                 throw new CHttpException(404, "Video Not Found");
             }
  
-            // Increment the view count
             $video->plays += 1;
  
-            // Save the updated video
             if ($video->save()) {
-                // Return a success response
                 header('HTTP/1.1 200 OK');
                 echo "play count incremented successfully.";
             } else {
-                // Return an error response if save fails
                 throw new CHttpException(500, "Failed to increment play count.");
             }
         } catch (Exception $e) {
-            // Log the error
             Yii::log("Error incrementing play count: " . $e->getMessage(), CLogger::LEVEL_ERROR);
- 
-            // Return a 500 internal server error
             header('HTTP/1.1 500 Internal Server Error');
             echo "Internal Server Error";
         }
- 
-        // End the application to prevent Yii from rendering the view
         Yii::app()->end();
     }
     
@@ -237,24 +294,37 @@ class VideoController extends CController {
     public function actionTrends()
     {
         try {
-            // Fetch videos sorted by views in descending order
             $criteria = new EMongoCriteria();
             $criteria->sort('views', EMongoCriteria::SORT_DESC);
             
             $videos = Video::model()->findAll($criteria);
  
-            // Render the 'home' view with the retrieved video data
             $this->render('home', array('data' => $videos));
         } catch (Exception $e) {
-            // Log the error
             Yii::log("Error fetching trending videos: " . $e->getMessage(), CLogger::LEVEL_ERROR);
- 
-            // Render an error view or redirect as needed
             throw new CHttpException(500, 'Internal Server Error');
         }
     }
  
-    //search
+    public function actionTags()
+    {
+        $tag = Yii::app()->request->getQuery('tag');
+ 
+        try {
+            $criteria = new EMongoCriteria();
+            $criteria->tags('in', array($tag));
+            
+            $criteria->limit(20);
+ 
+            $videos = Video::model()->findAll($criteria);
+ 
+            $this->render('home', array('data' => $videos));
+        } catch (Exception $e) {
+            Yii::log("Error fetching videos by tag: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+        }
+    }
+ 
+    //search-----------------------
     public function actionSearch()
     {
         $query = "hr";
@@ -284,7 +354,6 @@ class VideoController extends CController {
             $cursor = $collection->aggregate($pipeline);
             $videos = iterator_to_array($cursor);
             
-            // Render the 'home' view with the search results
             $this->render('home', array('data' => $videos));
         } catch (Exception $e) {
             Yii::log("Error fetching videos: " . $e->getMessage(), CLogger::LEVEL_ERROR);
@@ -302,35 +371,105 @@ class VideoController extends CController {
         ));
     }
  
-    public function actionTag()
+    
+ 
+    public function actionAnalytics()
     {
- 
-        $tag = Yii::app()->request->getQuery('tag');
-        echo $tag;
- 
         try {
-            // Create a MongoDB criteria to find videos with the given tag
+            $userId =  new MongoDB\BSON\ObjectId(Yii::app()->session['user_id']);
+ 
             $criteria = new EMongoCriteria();
-            $criteria->tags('in', array($tag));
-            
-            // Limit the results to 20
-            $criteria->limit(20);
+            $criteria->userId = $userId;
  
-            // Find the videos
-            $videos = Video::model()->findAll($criteria);
-            
-            Yii::app()->end();
+            // $criteria->select(array('title', 'views', 'plays', 'likes', 'dislikes'));
  
-            // Render the 'home' view with the retrieved video data
-            $this->render('home', array('data' => $videos));
+            $videoAnalytics = Video::model()->findAll($criteria);
+            
+            $videoinfo = array();
+            foreach ($videoAnalytics as $video) {
+                $eachvideoinfo = array(
+                    'title' => $video->title,
+                    'views' => $video->views,
+                    'plays' => $video->plays,
+                    'likes' => $video->likes,
+                    'dislikes' => $video->dislikes,
+                );
+                $videoinfo[] = $eachvideoinfo;
+            }
+            $overall = array(
+                'totalViews' => array_sum(array_column($videoinfo, 'views')),
+                'totalPlays' => array_sum(array_column($videoinfo, 'plays')),
+                'totalLikes' => array_sum(array_column($videoinfo, 'likes')),
+                'totalDisLikes' => array_sum(array_column($videoinfo, 'dislikes')),
+            );
+ 
+            $this->render('analytics', array(
+                'videoinfo' => json_encode($videoinfo),
+                'overall' => json_encode($overall),
+                'n' => count($videoinfo),
+            ));
         } catch (Exception $e) {
-            // Handle any errors that occur during the process
-            Yii::log("Error fetching videos by tag: " . $e->getMessage(), CLogger::LEVEL_ERROR);
-            // Render an error view or redirect as needed
+            Yii::log("Error fetching video analytics: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            $this->render('error', array('message' => 'Error fetching video analytics'));
         }
     }
  
+    public function actionUploadVideo(){
+        try {
+            $this->render('uploadvideo');
+        } catch (Exception $e) {
+            Yii::log("Error fetching uploadvideo page: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            throw new CHttpException(500, 'Error fetching videos.');
+        }
+    }
+ 
+    public function actionUpload(){
+        try{
+ 
+        } catch (Exception $e) {
+            Yii::log("Error uploading video: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            throw new CHttpException(500, 'Error fetching videos.');
+        }
+    }
+ 
+    public function actionStorePlaybackPosition($videoId)
+    {
+        try {
+            if (Yii::app()->request->isPostRequest) {
+                $data = file_get_contents('php://input');
+                $data = CJSON::decode($data, true);
+                $playbackPosition = $data["playbackPosition"];
+                Yii::app()->session["playbackPosition_$videoId"] = $playbackPosition;
+                echo CJSON::encode(array('status' => 200));
+            } else {
+                throw new CHttpException(400, 'Invalid request. Playback position is missing.');
+            }
+        } catch (Exception $e) {
+            Yii::log("Error storing playback position to session: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            echo CJSON::encode(array('status' => 500, 'error' => 'Failed to set playback position'));
+        }
+    }
+ 
+    public function actionFetchPlaybackPosition($videoId)
+    {
+        try {
+            $playbackPosition = Yii::app()->session["playbackPosition_$videoId"] ?? 0;
+            Yii::log(
+                "Playback position for video $videoId retrieved: $playbackPosition",
+                CLogger::LEVEL_INFO
+            );
+ 
+            header('Content-Type: application/json');
+            Yii::app()->end(CJSON::encode(array('playbackPosition' => $playbackPosition)));
+        } catch (Exception $e) {
+            Yii::log("Error retrieving playback position from session: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            header('Content-Type: application/json');
+            echo CJSON::encode(array('error' => 'Failed to retrieve playback position'));
+        }
+        Yii::app()->end();
+    }
 }
  
-?>
+    
  
+?>

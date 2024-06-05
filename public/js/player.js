@@ -1,8 +1,9 @@
 function showMessageBox(key) {
   document.getElementById('messageBoxOverlay').style.display = 'flex';
-  const keyval=key.toString();
-  document.getElementById('embed-code').innerText = `<iframe width="1000" height="800" src="https://streambox-ydlk.onrender.com/embed?key=${keyval}" frameborder='0'></iframe>`
+  const keyval = key.toString();
+  document.getElementById('embed-code').innerText = `<iframe width="1000" height="800" src="https://streambox-ydlk.onrender.com/embed?key=${keyval}" frameborder="0"></iframe>`;
 }
+
 
 function closeMessageBox() {
   document.getElementById('messageBoxOverlay').style.display = 'none';
@@ -11,20 +12,41 @@ function closeMessageBox() {
 function copyText() {
   var textToCopy = document.querySelector('.message-body p').innerText;
 
-  navigator.clipboard.writeText(textToCopy)
-    .then(function() {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textToCopy)
+      .then(function() {
+        document.getElementById('copy').innerHTML = 'Copied';
+        document.getElementById('copy').classList.remove('btn-secondary');
+        document.getElementById('copy').classList.add('btn-light');
+        setTimeout(function() {
+          document.getElementById('copy').innerHTML = 'Copy';
+          document.getElementById('copy').classList.remove('btn-light');
+          document.getElementById('copy').classList.add('btn-secondary');
+        }, 2000);
+      })
+      .catch(function(err) {
+        console.error('Unable to copy text: ', err);
+      });
+  } else {
+    var textarea = document.createElement('textarea');
+    textarea.value = textToCopy;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
       document.getElementById('copy').innerHTML = 'Copied';
-      document.getElementById('copy').classList.remove('btn-secondary')
-      document.getElementById('copy').classList.add('btn-light')
-      setTimeout(function(){
+      document.getElementById('copy').classList.remove('btn-secondary');
+      document.getElementById('copy').classList.add('btn-light');
+      setTimeout(function() {
         document.getElementById('copy').innerHTML = 'Copy';
-      document.getElementById('copy').classList.remove('btn-light')
-      document.getElementById('copy').classList.add('btn-secondary')
-      }, 2000)
-    })
-    .catch(function(err) {
-      console.error('Unable to copy text: ', err);
-    });
+        document.getElementById('copy').classList.remove('btn-light');
+        document.getElementById('copy').classList.add('btn-secondary');
+      }, 2000);
+    } catch (err) {
+      console.error('Fallback: Unable to copy text: ', err);
+    }
+    document.body.removeChild(textarea);
+  }
 }
 
 

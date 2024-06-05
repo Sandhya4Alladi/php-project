@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamBox</title>
-    <link rel="icon" type="image/png" href="../images/play.png">
-    <link rel="stylesheet" href="/css/uploadvideostyle.css">
+    <link rel="icon" type="image/png" href="/public/images/play.png">
+    <link rel="stylesheet" href="/public/css/uploadvideostyle.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
@@ -14,12 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Protest+Strike&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    <?php
-        $baseUrl = Yii::app()->baseUrl;
-        $cs = Yii::app()->getClientScript();
-        // $cs->registerScriptFile($baseUrl . '/js/yourscript.js');
-        $cs->registerCssFile($baseUrl . '/css/style.css');
-    ?>
+    <link href="/public/css/style.css" rel="stylesheet"?>
     <style>
         body, html {
             overflow: hidden;
@@ -66,13 +61,7 @@
                   <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search" name="search">
                 </form>
                 </li>&nbsp;&nbsp;&nbsp;&nbsp;
-                  <li class="nav-item mr-3" >
-                    <form class="form-inline" method="get" action="/customs" >
-                      <button style="padding-right: 10px;" class="btn btn-outline-light my-2 my-sm-0" type="submit">
-                        <i style="font-size:20px" class="fa">&#xf013;</i>
-                      </button>
-                    </form>
-                  </li>&nbsp;&nbsp;&nbsp;&nbsp;
+                 
                 
               <!-- <li class="nav-item ml-3">
                 <form class="form-inline">
@@ -116,7 +105,7 @@
         <div class="container">
             <div class="row justify-content-center" >
                 <div class="col-lg-8">
-                    <form class="rounded bg-white shadow p-5" action='/videos/uploadvideo' method="post" width="100%" enctype="multipart/form-data">
+                    <form class="rounded bg-white shadow p-5" action='/video/addvideo' method="post" width="100%" enctype="multipart/form-data">
                         <h3 class="text-dark fw-bolder fs-4 mb-2 text-center">Upload Video</h3>
                         <div class="mb-3">
                             <label for="title" class="form-label"><h6>Title</h6></label>
@@ -177,13 +166,13 @@
     <script>
       const cancel = document.getElementById('cancel');
       cancel.addEventListener('click', function(event){
-          window.location.href='/'
+          window.location.href='/video/home'
       });
     </script>
    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-   <script src="../js/confirm.js"></script>
-   <script src="../js/logo.js"></script>
+   <script src="/public/js/confirm.js"></script>
+   <script src="/public/js/logo.js"></script>
 </body>
 </html>
  

@@ -34,10 +34,8 @@ video.addEventListener('play', function(){
  
 function sendPlayRecord(id){
   try{
-    fetch("/videos/plays", {
+    fetch("/video/addplay?id="+id, {
       method: "PUT",
-      body: JSON.stringify({id:id}),
-      headers: {'Content-Type': 'application/json'}
     });
   }
   catch(err){
@@ -46,7 +44,7 @@ function sendPlayRecord(id){
 }
 
 function checkStatus(id) {
-  fetch("/users/status/" + id, {
+  fetch("/user/check?id=" + id, {
     method: "GET",
   })
     .then((response) => {
@@ -69,9 +67,9 @@ function checkStatus(id) {
       console.error("Error fetching status:", error);
     });
 }
-
+ 
 function checkWatch(id) {
-  fetch("/users/track/" + id, {
+  fetch("/user/track?id=" + id, {
     method: "GET",
   })
     .then((response) => {
@@ -106,7 +104,7 @@ function toggleLike(btn, id) {
   dislikeBtn.classList.remove("selected");
 
   try {
-    fetch("/users/like", {
+    fetch("/user/like", {
       method: "post",
       body: JSON.stringify({ id: id }),
       headers: { "Content-Type": "application/json" },
@@ -124,7 +122,7 @@ function toggleDislike(btn, id) {
   likeBtn.classList.remove("selected");
 
   try {
-    fetch("/users/dislike", {
+    fetch("/user/dislike", {
       method: "post",
       body: JSON.stringify({ id: id }),
       headers: { "Content-Type": "application/json" },
@@ -138,7 +136,7 @@ function toggleClock(btn, id) {
   btn.classList.toggle("clicked");
 
   try {
-    fetch("/users/watch", {
+    fetch("/user/watch", {
       method: "post",
       body: JSON.stringify({ id: id }),
       headers: { "Content-Type": "application/json" },
@@ -148,8 +146,3 @@ function toggleClock(btn, id) {
   }
 }
 
-document.getElementById("chatButton").addEventListener("click", function () {
-  toggleComments(id);
-  var commentSection = document.getElementById("chatContent");
-  commentSection.style.display = "block";
-});

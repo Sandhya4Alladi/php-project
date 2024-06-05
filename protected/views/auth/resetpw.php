@@ -68,7 +68,7 @@
                 }
                 return response.json();
             }).then((data) => {
-
+ 
                     if(data.status === 'error'){    
                     showToastMsg(data.message);
                     }else{
@@ -78,7 +78,7 @@
         }).catch(error => {
                 console.error('Error:', error);
                 });
-        }); 
+        });
         function showToastMsg(message) {
             const myToast = document.getElementById('myToast');
             const toastbody = document.getElementById('toast-body');

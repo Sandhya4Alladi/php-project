@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/public/css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-
+ 
     <style>
         body, html {
             overflow: hidden;
@@ -38,20 +38,20 @@
                     </div>
                     <div>
                         <button type="submit" class="btn btn-primary submit_btn my-4" id = "otp">Submit</button>
-                    </div> 
+                    </div>
                 </form>
                 
             </div>
         </div>
     </section>
-
+ 
 <script>
    var verifyButton = document.getElementById("otp");
         verifyButton.addEventListener('click', function(e){
             e.preventDefault();
             var email = document.getElementsByName("email")[0].value;
             let url = '<?php echo Yii::app()->createUrl('/auth/mail'); ?>';
-
+ 
             fetch(url, {
                 method: "POST",
                 headers: {'Content-Type': 'application/json'},

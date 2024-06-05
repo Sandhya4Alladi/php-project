@@ -1,7 +1,7 @@
-<?php
+<?php 
 $jsonData = CJSON::encode($data);
 ?>
- 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,22 +35,22 @@ $jsonData = CJSON::encode($data);
 .navbar-nav{
 margin-right: 100px;
 }
- 
+
 .main-body {
 display: flex;
 flex-direction: row;
 height: calc(100vh - 114px);
- 
+
 }
 .main-body .main {
 padding: 15px;
 width: 100%;
 }
- 
+
 .main {
 overflow: auto;
 }
- 
+
 #videos {
 display:  flex;
 flex-wrap:  wrap;
@@ -58,7 +58,7 @@ gap: 15px;
 height: calc(100vh - 114px);
 cursor: pointer;
 }
- 
+
 .card {
 position: relative;
 height: 300px;
@@ -68,7 +68,7 @@ border: 1px solid #ccc;
 -moz-box-shadow: 0px 0px 38px -16px rgba(0,0,0,0.75);
 box-shadow: 0px 0px 38px -16px rgba(0,0,0,0.75);
 }
- 
+
 .card button {
 text-align: center;
 font-size: medium;
@@ -76,13 +76,13 @@ font-family: "Protest Strike", sans-serif;
 font-weight: 150;
 font-style: normal;
 }
- 
+
 .card img {
 width: 100%;
 height: 100%;
 overflow: hidden;
 }
- 
+
 .overlay {
 display: none;
 position: absolute;
@@ -96,7 +96,7 @@ align-items: center;
 background: rgba(0, 0, 0, 0);
 transition: all 0.5s ease;
 }
- 
+
 .material-symbols-outlined {
 font-size: 3rem;
 font-variation-settings:
@@ -105,7 +105,7 @@ font-variation-settings:
 'GRAD' 0,
 'opsz' 48
 }
- 
+
 .explore-tags{
 display: none;
 }
@@ -113,8 +113,8 @@ display: none;
 <body>
 <div id="page-content-wrapper">
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <button class="navbar-brand p-2 btn btn-primary" id="streambox-logo">
-        <img src="/public/images/homelogo.jpg" class="img-fluid" alt="logo" width="50">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>STREAMBOX</b>
+    <button class="navbar-brand p-2 btn btn-primary" id="streambox-logo" >
+    <img src="/public/images/homelogo.jpg" class="img-fluid" alt="logo" width="50">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>STREAMBOX</b>
     </button>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -122,15 +122,21 @@ display: none;
     <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
       <ul class="navbar-nav ml-auto">
         <li class="nav-item mr-3">
-          <form class="form-inline" method="get" action="/videos/search">
+          <form class="form-inline" method="get" action="/video/search">
             <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search" name="search">
             <button class="btn btn-outline-light my-2 my-sm-0" type="submit" id="searchBtn"><i class="fas fa-search"></i></button>
           </form>
         </li>
-      
+            
+        <!-- <li class="nav-item ml-3">
+          <form class="form-inline">
+            <button style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" type="submit"><i class="fas fa-bell"></i>
+          </form>
+        </li> -->
+
         <li class="nav-item ml-3">
-          <form class="form-inline" method="get">
-            <button style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" formaction="<?php echo Yii::app()->createUrl('/user/profile'); ?>" type="submit" ><i class="fas fa-user"></i>
+          <form class="form-inline" method="get" action="/user/profile">
+            <button style="border: none; outline: none;" class="btn btn-outline-light my-2 my-sm-0" type="submit"><i class="fas fa-user"></i>
           </form>
         </li>
         <li class="nav-item ml-3"></li>
@@ -168,7 +174,7 @@ display: none;
 <div class="d-flex" id="wrapper">
   <!-- Sidebar -->
   <div class="sidebar" id="sidebar-wrapper">
- 
+
       <div class="list-group list-group-flush ">
         <form method="get" action="/video/home">
           <button class="list-group-item list-group-item-action" style="border: none; outline: none;">
@@ -267,11 +273,11 @@ display: none;
 </footer> -->
 <script src="/public/js/cards.js"></script>
     <script>
- 
+
     const allVideos = <?php echo $jsonData; ?>;
     //console.log(allVideos);
     display(allVideos);
- 
+
     </script>
     <script>
       document.querySelector('.explore').addEventListener('click', function() {

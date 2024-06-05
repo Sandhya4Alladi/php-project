@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/public/images/play.png">
     <link rel="stylesheet" href="/public/css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
+ 
     <style>
         body, html {
             overflow: hidden;
@@ -55,6 +55,7 @@
           var verifyButton = document.getElementById("otp-submit");
             verifyButton.addEventListener('click', function(e){
             e.preventDefault();
+            
             const otpdiv = document.getElementById('otp-div');
                 var d1=document.getElementsByName("d1")[0].value;
                 var d2=document.getElementsByName("d2")[0].value;
@@ -88,7 +89,7 @@
             toast.show();
         }
     </script>
-    <!-- <script src="../js/otp.js"></script> -->
+    <script src="/public/js/otp.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

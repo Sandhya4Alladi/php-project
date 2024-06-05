@@ -1,15 +1,19 @@
 <?php
-
+use MongoDB\BSON\ObjectId;
+use PhpParser\Node\Expr\Cast\Object_;
+ 
     class UserController extends Controller{
-
+ 
         public $layout = 'sample';
-
+ 
         public function actionIndex(){
        
             $authToken = Yii::app()->request->cookies['jwt_token'];
             echo $authToken;
+            $this->render('application.views.video.player');
+            Yii::app()->end();
         }
-
+ 
         public function actionEditprofile(){
             //update user
             $userId = Yii::app()->request->getQuery('userId');
@@ -22,7 +26,7 @@
                         $requestData = json_decode(file_get_contents('php://input'), true);
                         $username = $requestData['username'];
                         $email = $requestData['email'];
-
+ 
                         $user->username = $username;
                         $user->email = $email;
                         if ($user->save()) {
@@ -40,9 +44,9 @@
                 echo CJSON::encode(array('message' => 'You can update only your account!'));
                 Yii::app()->end();
             }
-
+ 
         }
-
+ 
         public function actionDeleteprofile() {
             $userId = Yii::app()->request->getParam('userId');
             $id = Yii::app()->session['user_id'];
@@ -53,8 +57,10 @@
         
                     if ($user !== null) {
                         if ($user->delete()) {
-                            Yii::app()->user->logout();
-                            $this->redirect(['/auth/logout']);
+                            // Yii::app()->user->logout();
+                            // Yii::app()->end();
+                            // $this->redirect(['/auth/logout']);
+                            Yii::app()->end(CJSON::encode(array('status' => 200)));
                         } else {
                             throw new CHttpException(500, 'Failed to delete user.');
                         }
@@ -69,7 +75,7 @@
                 Yii::app()->end();
             }
         }
-
+ 
         public function actionProfile(){
             //getUser
             if(Yii::app()->request->getRequestType() === 'GET'){
@@ -80,29 +86,32 @@
             $this->render('profile', array('userId' => $user));
             Yii::app()->end();
         }
-
+ 
         public function actionLike(){
             //like
-            $userId = Yii::app()->session['user_id']; 
-            $videoId = Yii::app()->request->getQuery('userId');
-
+            $userId = new ObjectId(Yii::app()->session['user_id']);
+            $data = file_get_contents('php://input');
+            $data = json_decode($data, true);
+            $id = new ObjectId($data['id']);
+           
+ 
                 try {
                     $user = User::model()->findByPk($userId);
                     if ($user !== null) {
-                        if (!in_array($videoId, $user->likedvideos)) {
-                            $disliked = User::model()->findByAttributes(array('_id' => $userId, 'dislikedvideos' => $videoId));
+                        if (!in_array($id, $user->likedVideos)) {
+                            $disliked = User::model()->findByAttributes(array('_id' => $userId, 'dislikedVideos' => $id));
                             if ($disliked !== null) {
-                                $user->dislikedvideos = array_diff($user->dislikedvideos, array($videoId));
+                                $user->dislikedvideos = array_diff($user->dislikedVideos, array($id));
                                 $user->save();
-                                $video = Video::model()->findByPk($videoId);
+                                $video = Video::model()->findByPk($id);
                                 if ($video !== null) {
                                     $video->dislikes -= 1;
                                     $video->save();
                                 }
                             }
-                            $user->likedVideos[] = $videoId;
+                            $user->likedVideos[] = $id;
                             $user->save();
-                            $video = Video::model()->findByPk($videoId);
+                            $video = Video::model()->findByPk($id);
                             if ($video !== null) {
                                 $video->likes += 1;
                                 $video->save();
@@ -116,28 +125,30 @@
                     Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
                 }
         }
-
+ 
         public function actionDislike(){
-
-            $userId = Yii::app()->session['user_id'];
-            $videoId = Yii::app()->request->getQuery('userId');
-
+ 
+            $userId = new ObjectId(Yii::app()->session['user_id']);
+            $data = file_get_contents('php://input');
+            $data = json_decode($data, true);
+            $id = new ObjectId($data['id']);
+ 
             try {
                 $user = User::model()->findByPk($userId);
                 if ($user !== null) {
-                    if ($user->likedvideos && in_array($videoId, $user->likedvideos)) {
-                        $user->likedvideos = array_diff($user->likedvideos, array($videoId));
+                    if ($user->likedVideos && in_array($id, $user->likedVideos)) {
+                        $user->likedVideos = array_diff($user->likedVideos, array($id));
                         $user->save();
-                        $video = Video::model()->findByPk($videoId);
+                        $video = Video::model()->findByPk($id);
                         if ($video !== null) {
                             $video->likes -= 1;
                             $video->save();
                         }
                     }
-                    if (!in_array($videoId, $user->dislikedVideos)) {
-                        $user->dislikedVideos[] = $videoId;
+                    if (!in_array($id, $user->dislikedVideos)) {
+                        $user->dislikedVideos[] = $id;
                         $user->save();
-                        $video = Video::model()->findByPk($videoId);
+                        $video = Video::model()->findByPk($id);
                         if ($video !== null) {
                             $video->dislikes += 1;
                             $video->save();
@@ -150,37 +161,40 @@
             } catch (Exception $e) {
                 Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
             }
-
+ 
         }
-
+ 
         public function actionwatch(){
             //watch
-         $userId = Yii::app()->session['user_id'];
-         $videoId = Yii::app()->request->getQuery('userId');
+            $userId = new ObjectId(Yii::app()->session['user_id']);
+            $data = file_get_contents('php://input');
+            $data = json_decode($data, true);
+            $id = new ObjectId($data['id']);
          try{
-
-            $user = User::model()->findByPk($videoId);
+ 
+            $user = User::model()->findByPk($userId);
              if ($user !== null) {
-                if (!in_array($videoId, $user->watchLater)) {
-                    $user->watchLater[] = $videoId;
+                if (!in_array($id, $user->watchLater)) {
+                    $user->watchLater[] = $id;
                     $user->save();
                 }
-         } else {
+             } else {
             throw new Exception('User not found');
             }
-
+            Yii::app()->end(json_encode("The video has been added to watch later."));
             }catch(Exception $e){
                 Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
             }
         }
         
-        public function actionTrackstatus(){
+        public function actionTrack(){
             //tackStatus
-            $userId = Yii::app()->session['user_id']; 
-            $videoId = Yii::app()->request->getQuery('userId');
-
+            $userId = new ObjectId(Yii::app()->session['user_id']);
+            $videoId = Yii::app()->request->getQuery('id');
+            $id = new ObjectId($videoId);
+ 
             try {
-                $user = User::model()->findByAttributes(array('_id' => $userId, 'watchlater' => $videoId));
+                $user = User::model()->findByAttributes(array('_id' => $userId, 'watchLater' => $id));
                 if ($user !== null) {
                     Yii::app()->end(json_encode(array('watched' => 1)));
                 } else {
@@ -191,13 +205,16 @@
                 Yii::app()->end(json_encode(array('error' => $e->getMessage())));
             }
         }
-
-        public function actionCheckstatus(){
-
-            $userId = Yii::app()->session['user_id'];  
+ 
+        public function actionCheck(){
+ 
+            $userId = new ObjectId(Yii::app()->session['user_id']);
+            $videoId = Yii::app()->request->getQuery('id');
+            $id = new ObjectId($videoId);
+ 
             try {
-                $liked = User::model()->findByAttributes(array('_id' => $userId, 'likedvideos' => $id));
-                $disliked = User::model()->findByAttributes(array('_id' => $userId, 'dislikedvideos' => $id));
+                $liked = User::model()->findByAttributes(array('_id' => $userId, 'likedVideos' => $id));
+                $disliked = User::model()->findByAttributes(array('_id' => $userId, 'dislikedVideos' => $id));
                 
                 if ($liked !== null) {
                     Yii::app()->end(json_encode(array('liked' => 1, 'disliked' => 0)));
@@ -211,7 +228,7 @@
                 Yii::app()->end(json_encode(array('error' => $e->getMessage())));
             }
         }
-
+ 
     }
-
+ 
 ?>

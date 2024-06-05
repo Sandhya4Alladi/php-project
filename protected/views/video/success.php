@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StreamBox</title>
-    <link rel="icon" type="image/png" href="../images/play.png">
-    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" type="image/png" href="/public/images/play.png">
+    <link rel="stylesheet" href="/public/css/style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"/>
 
@@ -27,7 +27,7 @@
     <div id="page-content-wrapper">
       <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <button class="navbar-brand p-2 pl-10 btn btn-primary" id="streambox-logo" >
-          &nbsp;&nbsp;&nbsp;&nbsp;<img src="<?php echo Yii::app()->baseUrl . '/assets/images/homelogo.jpg';?>" class="img-fluid" alt="logo" width="50">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>STREAMBOX</b>
+          &nbsp;&nbsp;&nbsp;&nbsp;<img src="/public/images/homelogo.jpg" class="img-fluid" alt="logo" width="50">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>STREAMBOX</b>
         </button>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -39,13 +39,7 @@
                 <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search" name="search">
               </form>
               </li>&nbsp;&nbsp;&nbsp;&nbsp;
-                <li class="nav-item mr-3" >
-                  <form class="form-inline" method="get" action="/customs" >
-                    <button style="padding-right: 10px;" class="btn btn-outline-light my-2 my-sm-0" type="submit">
-                      <i style="font-size:20px" class="fa">&#xf013;</i>
-                    </button>
-                  </form>
-                </li>&nbsp;&nbsp;&nbsp;&nbsp;
+                
               
             <li class="nav-item ml-3">
               <form class="form-inline" method="get" action="/users/find">
@@ -84,7 +78,7 @@
         <div
           class="col-sm-8 offset-sm-2 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4 text-center">
           <div class="logo">
-                    <br><img src="<?php echo Yii::app()->baseUrl . '/assets/images/play.png';?>" class="img-fluid" alt="logo">
+                    <br><img src="/public/images/play.png" class="img-fluid" alt="logo">
                     <h3>StreamBox</h3>
                 </div>
           <br /><br />
@@ -95,7 +89,7 @@
               </h6>
               <!-- <iframe width="1000" height="800" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen ></iframe> -->
               <br />
-              <button class="btn btn-primary" method="post" formaction="/videos/myvideos">Go to Videos</button>
+              <button class="btn btn-primary" method="post" formaction="/video/myvideos">Go to Videos</button>
             </form>
           </div>
         </div>
@@ -103,7 +97,7 @@
     </section>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="../js/confirm.js"></script>
-    <script src="../js/logo.js"></script>
+    <script src="/public/js/confirm.js"></script>
+    <script src="/public/js/logo.js"></script>
   </body>
 </html>

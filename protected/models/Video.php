@@ -1,4 +1,5 @@
 <?php
+ 
 class Video extends EMongoDocument
 {
     public $userId;
@@ -17,7 +18,7 @@ class Video extends EMongoDocument
  
     public function getCollectionName()
     {
-        return 'videos';
+        return "videos";
     }
  
     public function rules()
@@ -31,11 +32,12 @@ class Video extends EMongoDocument
     public function init()
     {
         parent::init();
-        // Set default values
-        $this->views = 0;
-        $this->plays = 0;
-        $this->likes = 0;
-        $this->dislikes = 0;
+        if ($this->isNewRecord) {
+            $this->views = isset($this->views) ? $this->views : 0;
+            $this->plays = isset($this->plays) ? $this->plays : 0;
+            $this->likes = isset($this->likes) ? $this->likes : 0;
+            $this->dislikes = isset($this->dislikes) ? $this->dislikes : 0;
+        }
     }
  
     public function beforeSave()
@@ -47,7 +49,6 @@ class Video extends EMongoDocument
                 $this->createdAt = $time;
             }
  
-            // Set updatedAt for every save
             $this->updatedAt = $time;
  
             return true;
@@ -60,4 +61,5 @@ class Video extends EMongoDocument
         return parent::model($className);
     }
 }
+ 
 ?>
