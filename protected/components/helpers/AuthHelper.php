@@ -17,8 +17,7 @@ use PHPMailer\PHPMailer\PHPMailer;
                     Yii::app()->session['user_id'] = $user_id;
                     return true;
                 }
-               
-            }
+            }   
                 catch(Exception $e){
                     header('HTTP/1.0 403 Forbidden');
                     echo 'Invalid Token';
@@ -31,10 +30,10 @@ use PHPMailer\PHPMailer\PHPMailer;
 
        public static function signUp($postData){
 
-            $model = new User();
+           $model = new User();
            if(!empty($postData)){
 
-            $model->attributes = $_POST;
+            $model->attributes = $postData;
             $model->email = Yii::app()->session['email'];
             $model->password = password_hash($model->password, PASSWORD_BCRYPT);
 
@@ -51,14 +50,13 @@ use PHPMailer\PHPMailer\PHPMailer;
 
        }
 
+
        public static function login($postData){
 
         if(!empty($postData)){
-
             $email = $postData['email'];
             $password = $postData['password'];
             $user = User::model()->findByAttributes(array('email' => $email));
-
                 if ($user) {
                     if (password_verify($password, $user->password)) {
                         $expiryTime = time() + (1 * 60 * 60 * 24);
@@ -83,14 +81,13 @@ use PHPMailer\PHPMailer\PHPMailer;
         
     }
 
-        public static function mail(){
+        public static function mail($data){
 
                 $otp = self::generateOTP();
-                Yii::app()->session['otp'] = $otp;
-                $data = file_get_contents('php://input');
-                $data = json_decode($data, true);
+                Yii::app()->session['otp'] = $otp; //session
+               
                 $email = $data['email'];
-                Yii::app()->session['email'] = $email;
+                Yii::app()->session['email'] = $email; //session
                 $mail = new PHPMailer;
                 $mail->isSMTP();
                 $mail->Host = 'smtp.gmail.com';
@@ -112,12 +109,11 @@ use PHPMailer\PHPMailer\PHPMailer;
 
         }
 
-        public static function verifyMail(){
-
-            $data = file_get_contents('php://input');
-            $data = json_decode($data, true);
+        public static function verifyMail($data){
             $email = $data['email'];
-            $user = User::model()->findByAttributes(array('email'=>$email));
+            $criteria = new EMongoCriteria();
+            $criteria->email('==',$email);
+            $user = User::model()->find($criteria);
             if(!empty($user)){
                 return true;
             }
@@ -125,27 +121,9 @@ use PHPMailer\PHPMailer\PHPMailer;
 
         }
 
-        public static function verifyOtp(){
 
-            $data = file_get_contents('php://input');
-            $data = json_decode($data, true);
-            list($d1, $d2, $d3, $d4, $d5, $d6) = array_values($data);
-            $otp = Yii::app()->session['otp'];
-            $otp_data = $d1*100000 + $d2*10000 + $d3*1000 + $d4*100 + $d5*10 + $d6*1;
-            echo $otp;
-            echo $otp_data;
+        public static function resetPw($data){
 
-            if($otp===$otp_data){
-                return true;
-            }
-            return false;
-
-        }
-
-        public static function resetPw(){
-
-            $data = file_get_contents('php://input');
-                $data = json_decode($data, true);
                 $password = $data['password'];
                 $confirm_pw = $data['confirm_password'];
                 if($password===$confirm_pw){
@@ -154,19 +132,24 @@ use PHPMailer\PHPMailer\PHPMailer;
  
                     $email = Yii::app()->session['email'];
                     
-                    $user = User::model()->findByAttributes(array('email'=>$email));
- 
-                    $user->password = $hashed_pw;
-
-                    if($user->save){
-                        return true;
+                    $criteria = new EMongoCriteria();
+                    $criteria->email('==', $email);
+                    $user = User::model()->find($criteria);
+                    if ($user !== null) {
+                        $user->password = $hashed_pw;
+                       
+                        return $user;
                     }
+
+
+                   
                 }
-
+                else{
                     return false;
-
-        
-    }
+                }
+               
+         
+       }
 
         public static function generateOTP(){
             return mt_rand(100000, 999999);

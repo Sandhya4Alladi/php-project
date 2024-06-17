@@ -30,13 +30,9 @@
                     $this->createdAt = $time;
                 }
         
-                // Set updatedAt for every save
+               
                 $this->updatedAt = $time;
-        
-                // Hash the password
-                // if ($this->getIsNewRecord() || !empty($this->password)) {
-                //     $this->password = password_hash($this->password, PASSWORD_BCRYPT);
-                // }        
+              
                 return true;
             }
             return false;

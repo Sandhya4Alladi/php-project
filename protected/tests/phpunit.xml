@@ -13,9 +13,13 @@
         includeUncoveredFiles="false">
         <include>
             <directory suffix=".php">../components/helpers</directory>
+            <directory suffix=".php">../models</directory>
         </include>
-		<exclude>
+        
+        <exclude>
             <directory suffix=".php">../modules/*/views</directory>
+            <directory >../components/helpers/MongoHelper.php</directory>
+            <directory >../components/helpers/Validation.php</directory>
         </exclude>
         <report>
             <cobertura outputFile="reports/phpunit-coverage.xml"/>

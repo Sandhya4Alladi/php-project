@@ -2,6 +2,7 @@
 use Firebase\JWT\JWT;
 use PharIo\Manifest\Author;
 use PHPMailer\PHPMailer\PHPMailer;
+
  
     class AuthController extends Controller{
  
@@ -41,6 +42,8 @@ use PHPMailer\PHPMailer\PHPMailer;
                $result = AuthHelper::login($_POST);
                if($result){
                 $this->redirect(Yii::app()->createUrl('video/home'));
+                
+                // VideoHelper::homeHelper();
                }
 
                else{
@@ -57,7 +60,11 @@ use PHPMailer\PHPMailer\PHPMailer;
         public function actionMail(){
     
             if(Yii::app()->request->isPostRequest) {
-                $result = AuthHelper::mail();
+
+                $data = file_get_contents('php://input');
+                $data = json_decode($data, true);
+
+                $result = AuthHelper::mail($data);
 
                 if($result){
                     echo json_encode(array('status' => 'success', 'message' => 'mail sent successfully'));
@@ -72,13 +79,21 @@ use PHPMailer\PHPMailer\PHPMailer;
  
         public function actionVerifyotp(){
             if(Yii::app()->request->isPostRequest) {
-                $result = AuthHelper::verifyOtp();
-                if($result){
-                    Yii::app()->end();
+
+                $data = file_get_contents('php://input');
+                $data = json_decode($data, true);
+                list($d1, $d2, $d3, $d4, $d5, $d6) = array_values($data);
+                $otp = Yii::app()->session['otp'];
+                $otp_data = $d1*100000 + $d2*10000 + $d3*1000 + $d4*100 + $d5*10 + $d6*1;
+                echo $otp;
+                echo $otp_data;
+
+                if($otp===$otp_data){
+                    
                    return true;
                 }
                 else{
-                    Yii::app()->end();
+            
                   return false;
                 }
             }
@@ -91,8 +106,9 @@ use PHPMailer\PHPMailer\PHPMailer;
  
         public function actionVerifymail(){
             if(Yii::app()->request->isPostRequest){
-               
-                $result = AuthHelper::verifyMail();
+                $data = file_get_contents('php://input');
+                $data = json_decode($data, true);
+                $result = AuthHelper::verifyMail($data);
 
                 if($result){
                     echo json_encode(array('status' => 'error', 'message' => 'User already exists.'));
@@ -117,10 +133,14 @@ use PHPMailer\PHPMailer\PHPMailer;
         public function actionResetpw(){
            
             if(Yii::app()->request->isPostRequest){
+
+                $data = file_get_contents('php://input');
+                $data = json_decode($data, true);
         
-                $result = AuthHelper::resetPw();
- 
-                    if($result){
+                $result = AuthHelper::resetPw($data);
+
+                    if($result!==null){
+                        if($result->save())
                         echo json_encode(array('status' => 'success', 'message' => 'password reset successfully'));
                     }
                     else{
@@ -141,8 +161,11 @@ use PHPMailer\PHPMailer\PHPMailer;
                 Yii::app()->request->cookies->remove('jwt_token');
                 Yii::app()->session->destroy();
                 Yii::app()->end(CJSON::encode(array('status' => 200)));
+                Yii::app()->end();
             }catch(Exception $e){
-                echo $e;
+                Yii::log($e->getMessage(), CLogger::LEVEL_ERROR);
+                echo CJSON::encode(array('status' => 500, 'error' => 'Logout failed'));
+                Yii::app()->end();
             }
         }
  

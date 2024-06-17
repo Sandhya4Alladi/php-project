@@ -76,30 +76,28 @@ class VideoController extends Controller {
     }
  
     //getHomeCrads
-    public function actionHome() {
-        try {
-            $criteria = new EMongoCriteria();
-            $criteria->setLimit(15);
-            $videos = Video::model()->findAll($criteria);
-            // echo "<pre>";
-            // print_r($videos);
-            $this->render('home', array('data' => $videos));
-        } catch (Exception $e) {
+    public function actionHome(){
+
+        try{
+
+            $result = VideoHelper::homeHelper();
+            Yii::app()->controller->render('home', array('data' => $result));
+        }
+
+        catch (Exception $e) {
             Yii::log("Error fetching videos: " . $e->getMessage(), CLogger::LEVEL_ERROR);
             throw new CHttpException(500, 'Error fetching videos.');
         }
+
     }
  
     //getMyVideos
     public function actionMyVideos() {
         try {
  
-            $criteria = new EMongoCriteria();
-            $criteria->userId = new ObjectId(Yii::app()->session['user_id']);
+            $result = VideoHelper::myVideosHelper();
  
-            $videos = Video::model()->findAll($criteria);
- 
-            $this->render('myvideos', array('data' => $videos));
+            $this->render('myvideos', array('data' => $result));
         } catch (Exception $e) {
             Yii::log("Error fetching videos: " . $e->getMessage(), CLogger::LEVEL_ERROR);
             throw new CHttpException(500, 'Error fetching videos.');
