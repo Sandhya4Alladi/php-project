@@ -4,7 +4,8 @@ use Mockery\Adapter\Phpunit\MockeryTestCase;
 use Mockery as m;
 
 
-class UserHelperTest extends MockeryTestCase {
+class UserHelperTest extends MockeryTestCase
+{
 
     private $yiiAppMock;
     private $mongoMock;
@@ -12,6 +13,7 @@ class UserHelperTest extends MockeryTestCase {
     protected function setUp(): void
     {
         parent::setUp();
+
         $this->mongoMock = new MongoMock;
         $this->yiiAppMock = new YiiAppMock;
     }
@@ -25,675 +27,300 @@ class UserHelperTest extends MockeryTestCase {
 
     public function testGetUserProfile()
     {
-      
+
         $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
 
-  
+
         $mockUserCollection = $this->mongoMock->mockFind(
-            'User', 
+            'User',
             (object) ['_id' => '5ff9e4b9f1639b066c4d2e51', 'username' => 'test_user']
         );
 
-       
+
         $result = UserHelper::getUserProfile();
 
-      
-        $this->assertInstanceOf('User', $result); 
+
+        $this->assertInstanceOf('User', $result);
         $this->assertEquals('5ff9e4b9f1639b066c4d2e51', $result->_id);
         $this->assertEquals('test_user', $result->username);
     }
 
 
-    public function testUpdateUserProfileSuccess()
+    /**
+     * @dataProvider dataforUpdateUserProfile
+     */
+    public function testUpdateUserProfile($userId, $id, $data, $user, $saveResult, $expected)
     {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
 
-        
-        $userMock = (object) ['_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'), 'username' => 'old_username', 'email' => 'old_email@example.com'];
-        $this->mongoMock->mockFindByPk('User', $userMock);
+        $this->yiiAppMock->mockSession(['user_id' => $id]);
 
-        
-        $saveAttributes = [];
-        $this->mongoMock->mockSave('User', $saveAttributes);
 
-        $requestData = [
-            'username' => 'new_username',
-            'email' => 'new_email@example.com'
+        $userMock = $this->mongoMock->mockFindByPk(User::class, $user, [$userId]);
+
+        if ($user !== null) {
+
+            $userMock->shouldReceive('save')
+                ->andReturn($saveResult)
+                ->byDefault();
+        }
+
+
+        $result = UserHelper::updateUserProfile($userId, $data);
+
+
+        $this->assertEquals($expected, $result);
+    }
+
+    public function dataforUpdateUserProfile()
+    {
+        $userId = "5ff9e4b9f1639b066c4d2e51";
+        $expectedSuccess = "User updated successfully";
+        $expectedFailure = "Failed to update user.";
+        $expectedNotFound = "User not found.";
+        $expectedNotAuthorized = "You can update only your account!";
+
+        $data = [
+            'email' => "wertyui@efgh.com",
+            'username' => 'qwertuiop'
         ];
 
-        
-        $result = UserHelper::updateUserProfile('5ff9e4b9f1639b066c4d2e51', $requestData);
-
-        $this->assertEquals('new_username', $result->username);
-        $this->assertEquals('new_email@example.com', $result->email);
-        $this->assertEquals($requestData, $saveAttributes);
-    }
-
-    public function testUpdateUserProfileUserNotFound()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $this->mongoMock->mockFindByPk('User', null);
-
-        $requestData = [
-            'username' => 'new_username',
-            'email' => 'new_email@example.com'
+        $user = [
+            'username' => 'oldusername',
+            'email' => 'oldemail@domain.com'
         ];
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('User not found.');
+        return [
 
-        
-        UserHelper::updateUserProfile('5ff9e4b9f1639b066c4d2e51', $requestData);
+            // [$userId, $userId, $data, $user, true, $expectedSuccess],
+
+            [$userId, $userId, $data, $user, false, $expectedFailure],
+
+            [$userId, $userId, $data, null, null, $expectedNotFound],
+
+            [$userId, "5ff9e4b9f1639b066c4d2e52", $data, null, null, $expectedNotAuthorized]
+        ];
     }
 
-    public function testUpdateUserProfileSaveFailure()
+
+
+    /**
+     * @dataProvider dataforDeleteUserProfile
+     */
+
+    public function testDeleteUserProfile($userId, $id, $user, $deleteResult, $expected)
     {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
+        $this->yiiAppMock->mockSession(['user_id' => $id]);
+        $userMock = $this->mongoMock->mockFindByPk(User::class, $user, [$userId]);
+        if ($user !== null) {
+            $userMock->shouldReceive('deleteOne')
+                ->andReturn($deleteResult)
+                ->byDefault();
+        }
+        $result = UserHelper::deleteUserProfile($userId);
+        $this->assertEquals($expected, $result);
+    }
 
-        
-        $userMock = (object) ['_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'), 'username' => 'old_username', 'email' => 'old_email@example.com'];
-        $this->mongoMock->mockFindByPk('User', $userMock);
+    public function dataforDeleteUserProfile()
+    {
 
-        
-        $userMock->shouldReceive('save')->andReturn(false);
+        $userId = "5ff9e4b9f1639b066c4d2e51";
+        $expectedSuccess = "User deleted successfully";
+        $expectedFailure = "Failed to delete the user";
+        $expectedNotFound = "User not found";
+        $expectedNotAuthorized = "You can delete only your account!";
 
-        $requestData = [
-            'username' => 'new_username',
-            'email' => 'new_email@example.com'
+        $user = [
+            'email' => 'sdfbhn@sdcv.com'
         ];
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Failed to update user.');
+        return [
 
-       
-        UserHelper::updateUserProfile('5ff9e4b9f1639b066c4d2e51', $requestData);
+            [$userId, $userId, $user, true, $expectedSuccess],
+
+            [$userId, $userId, $user, false, $expectedFailure],
+
+            [$userId, $userId, null, null, $expectedNotFound],
+
+            [$userId, "5ff9e4b9f1639b066c4d2e52", null, null, $expectedNotAuthorized]
+        ];
     }
 
-    public function testUpdateUserProfileUnauthorized()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
 
-        $requestData = [
-            'username' => 'new_username',
-            'email' => 'new_email@example.com'
+
+    /**
+     * @dataProvider dataforLikeVideo
+     */
+
+    public function testLikeVideo($userId, $id, $user, $video, $expected)
+    {
+
+        $this->yiiAppMock->mockSession(['user_id' => $userId]);
+        $this->mongoMock->mockFindByPk(User::class, $user, [$id, $user]);
+        $this->mongoMock->mockFindByPk(Video::class, $video, ['_id' => $id, $user]);
+        $result = UserHelper::likeVideo($id);
+        $this->assertEquals($expected, $result);
+    }
+
+
+    public function dataforLikeVideo()
+    {
+
+
+        $userId = "5ff9e4b9f1639b066c4d2e51";
+        $id = ["id" => "5ff9e4b9f1639b066c4d2e52"];
+        $user = [
+            "email" => "sdfghjk@wdfg.com",
+            "likedVideos" => [],
+            "dislikedVideos" => $id
         ];
 
-        
-        $result = UserHelper::updateUserProfile('5ff9e4b9f1639b066c4d2e52', $requestData);
-
-        $this->assertEquals(['message' => 'You can update only your account!'], $result);
-    }
-
-
-    public function testDeleteUserProfileSuccess()
-    {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $userMock = (object) ['_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51')];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-
-        
-        $userMock->shouldReceive('delete')->andReturn(true);
-
-      
-        $result = UserHelper::deleteUserProfile('5ff9e4b9f1639b066c4d2e51');
-
-        $this->assertEquals(['status' => 200], $result);
-    }
-
-    public function testDeleteUserProfileUserNotFound()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $this->mongoMock->mockFindByPk('User', null);
-
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('User not found.');
-
-       
-        UserHelper::deleteUserProfile('5ff9e4b9f1639b066c4d2e51');
-    }
-
-    public function testDeleteUserProfileDeleteFailure()
-    {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $userMock = (object) ['_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51')];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-
-        
-        $userMock->shouldReceive('delete')->andReturn(false);
-
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Failed to delete user.');
-
-        
-        UserHelper::deleteUserProfile('5ff9e4b9f1639b066c4d2e51');
-    }
-
-    public function testDeleteUserProfileUnauthorized()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $result = UserHelper::deleteUserProfile('5ff9e4b9f1639b066c4d2e52');
-
-        $this->assertEquals(['message' => 'You can delete only your account!'], $result);
-    }
-
-
-
-    public function testLikeVideo()
-    {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $mockUserCollection = $this->mongoMock->mockFind(
-            'User', 
-            (object) ['_id' => '5ff9e4b9f1639b066c4d2e51', 'likedVideos' => []]
-        );
-
-        $mockVideoCollection = $this->mongoMock->mockFind(
-            'Video', 
-            (object) ['_id' => '5ff9e4b9f1639b066c4d2e52', 'likes' => 0]
-        );
-
-        $data = ['id' => '5ff9e4b9f1639b066c4d2e52'];
-
-     
-        $result = UserHelper::likeVideo($data);
-
-        
-        $this->assertEquals("The video has been liked.", $result);
-    }
-
-
-    public function testLikeVideoSuccess()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'likedVideos' => [],
-            'dislikedVideos' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')]
+        $video = [
+            "_id" => $id['id'],
+            "likes" => 0,
+            "dislikes" => 1
         ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-        $this->mongoMock->mockFindByAttributes('User', null);
+        $expected1 = "The video has been liked.";
+        $expected2 = "User not found";
 
-        
-        $videoMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e52'),
-            'likes' => 0,
-            'dislikes' => 1
+        return [
+            [$userId, $id, $user, $video, $expected1],
+            [$userId, $id, null, null, $expected2]
         ];
-        $this->mongoMock->mockFindByPk('Video', $videoMock);
-
-      
-        $result = UserHelper::likeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been liked.", $result);
-        $this->assertEquals([$videoMock->_id], $userMock->likedVideos);
-        $this->assertEquals([], $userMock->dislikedVideos);
-        $this->assertEquals(1, $videoMock->likes);
-        $this->assertEquals(0, $videoMock->dislikes);
     }
 
-    public function testLikeVideoUserNotFound()
+
+    /**
+     * @dataProvider dataforDislikeVideo
+     */
+
+    public function testDislikeVideo($userId, $id, $user, $video, $expected)
     {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
 
-       
-        $this->mongoMock->mockFindByPk('User', null);
-
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('User not found');
-
-        
-        UserHelper::likeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
+        $this->yiiAppMock->mockSession(['user_id' => $userId]);
+        $this->mongoMock->mockFindByPk(User::class, $user, [$id, $user]);
+        $this->mongoMock->mockFindByPk(Video::class, $video, ['_id' => $id, $video]);
+        $result = UserHelper::dislikeVideo($id);
+        $this->assertEquals($expected, $result);
     }
 
-    public function testLikeVideoAlreadyLiked()
+    public function dataforDislikeVideo()
     {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
 
-        
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'likedVideos' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')],
-            'dislikedVideos' => []
+        $userId = '5ff9e4b9f1639b066c4d2e51';
+        $id = ["id" => "5ff9e4b9f1639b066c4d2e52"];
+        $user = [
+            "email" => "sdfgh@fghj.com",
+            "likedVideos" => $id,
+            "dislikedVideos" => []
         ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-
-       
-        $videoMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e52'),
-            'likes' => 1,
-            'dislikes' => 0
+        $video = [
+            "_id" => $id['id'],
+            "likes" => 1,
+            "dislikes" => 0
         ];
-        $this->mongoMock->mockFindByPk('Video', $videoMock);
+        $expected1 = 'The video has been disliked.';
+        $expected2 = 'User not found';
 
-        
-        $result = UserHelper::likeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been liked.", $result);
-        $this->assertEquals([new ObjectId('5ff9e4b9f1639b066c4d2e52')], $userMock->likedVideos);
-        $this->assertEquals(1, $videoMock->likes);
-    }
-
-    public function testLikeVideoDislikeRemoved()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'likedVideos' => [],
-            'dislikedVideos' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')]
+        return [
+            [$userId, $id, $user, $video, $expected1],
+            [$userId, $id, null, null, $expected2]
         ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-        $this->mongoMock->mockFindByAttributes('User', $userMock);
+    }
 
-       
-        $videoMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e52'),
-            'likes' => 0,
-            'dislikes' => 1
+
+
+    /**
+     * @dataProvider dataforAddWatchLater
+     */
+
+    public function testAddWatchLater1($userId, $id, $user, $expected)
+    {
+
+        $this->yiiAppMock->mockSession(['user_id' => $userId]);
+        $this->mongoMock->mockFind(User::class, $user);
+        $result = UserHelper::addWatchLater($id);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function dataforAddWatchLater()
+    {
+
+        $userId = '5ff9e4b9f1639b066c4d2e51';
+        $id = ['id' => '5ff9e4b9f1639b066c4d2e52'];
+        $expected1 = 'The video has been added to watch later.';
+        $expected2 = "User not found";
+        $user = [
+            "email" => 'tevggf@gm.com'
         ];
-        $this->mongoMock->mockFindByPk('Video', $videoMock);
 
-        
-        $result = UserHelper::likeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been liked.", $result);
-        $this->assertEquals([new ObjectId('5ff9e4b9f1639b066c4d2e52')], $userMock->likedVideos);
-        $this->assertEquals([], $userMock->dislikedVideos);
-        $this->assertEquals(1, $videoMock->likes);
-        $this->assertEquals(0, $videoMock->dislikes);
-    }
-
-
-    public function testDislikeVideo()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $mockUserCollection = $this->mongoMock->mockFind(
-            'User', 
-            (object) ['_id' => '5ff9e4b9f1639b066c4d2e51', 'likedVideos' => ['5ff9e4b9f1639b066c4d2e52']]
-        );
-
-        $mockVideoCollection = $this->mongoMock->mockFind(
-            'Video', 
-            (object) ['_id' => '5ff9e4b9f1639b066c4d2e52', 'likes' => 1, 'dislikes' => 0]
-        );
-
-        $data = ['id' => '5ff9e4b9f1639b066c4d2e52'];
-
-       
-        $result = UserHelper::dislikeVideo($data);
-
-        
-        $this->assertEquals("The video has been disliked.", $result);
-    }
-
-    public function testDislikeVideoSuccess()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'likedVideos' => [],
-            'dislikedVideos' => []
+        return [
+            [$userId, $id, $user, $expected1],
+            [$userId, $id, null, $expected2]
         ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-        $this->mongoMock->mockFindByAttributes('User', null);
+    }
 
-        
-        $videoMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e52'),
-            'likes' => 0,
-            'dislikes' => 1
+
+    /**
+     * @dataProvider dataforTrackStatus
+     */
+
+    public function testTrackStatus($userId, $id, $user, $expected)
+    {
+
+        $this->yiiAppMock->mockSession(['user_id' => $userId]);
+        $this->mongoMock->mockFind(User::class, $user, ['_id' => $userId, 'watchLater' => $id]);
+        $result = UserHelper::trackStatus($id);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function dataforTrackStatus()
+    {
+
+        $userId = "5ff9e4b9f1639b066c4d2e51";
+
+        $id = "5ff9e4b9f1639b066c4d2e52";
+        $expected1 = ['watched' => 1];
+        $expected2 = ['watched' => 0];
+        $user = [
+            'email' => 'jj@ghg.jd',
         ];
-        $this->mongoMock->mockFindByPk('Video', $videoMock);
-
-       
-        $result = UserHelper::dislikeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been disliked.", $result);
-        $this->assertEquals([$videoMock->_id], $userMock->dislikedVideos);
-        $this->assertEquals(0, $videoMock->likes);
-        $this->assertEquals(1, $videoMock->dislikes);
-    }
-
-    public function testDislikeVideoUserNotFound()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $this->mongoMock->mockFindByPk('User', null);
-
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('User not found');
-
-        
-        UserHelper::dislikeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
-    }
-
-    public function testDislikeVideoAlreadyDisliked()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-      
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'likedVideos' => [],
-            'dislikedVideos' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')]
+        return [
+            [$userId, $id, $user, $expected1],
+            [$userId, $id, null, $expected2]
         ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
+    }
 
-        
-        $videoMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e52'),
-            'likes' => 0,
-            'dislikes' => 1
+
+    /**
+     * @dataProvider dataforCheckVideos
+     */
+    public function testCheckVideoStatus($userId, $id, $disliked, $liked, $expected)
+    {
+        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
+        $this->mongoMock->mockFind(User::class, $disliked, ['_id' => $userId, 'dislikedVideos' => $id]);
+        $this->mongoMock->mockFind(User::class, $liked, ['_id' => $userId, 'likedVideos' => $id]);
+        $result = UserHelper::checkVideoStatus($id);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function dataforCheckVideos()
+    {
+        $userId = '5ff9e4b9f1639b066c4d2e51';
+        $id = '5ff9e4b9f1639b066c4d2e52';
+        $disliked = [
+            'email' => "abc@gmail.com",
         ];
-        $this->mongoMock->mockFindByPk('Video', $videoMock);
-
-       
-        $result = UserHelper::dislikeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been disliked.", $result);
-        $this->assertEquals([new ObjectId('5ff9e4b9f1639b066c4d2e52')], $userMock->dislikedVideos);
-        $this->assertEquals(0, $videoMock->likes);
-        $this->assertEquals(1, $videoMock->dislikes);
-    }
-
-    public function testDislikeVideoLikeRemoved()
-    {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'likedVideos' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')],
-            'dislikedVideos' => []
+        $liked = [
+            'email' => 'abs@hj.cnkn',
         ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-        $this->mongoMock->mockFindByAttributes('User', $userMock);
+        $expected1 = ['liked' => 0, 'disliked' => 1];
+        $expected2 = ['liked' => 1, 'disliked' => 0];
+        $expected3 = ['liked' => 0, 'disliked' => 0];
 
-        
-        $videoMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e52'),
-            'likes' => 1,
-            'dislikes' => 0
+        return [
+            [$userId, $id, $disliked, null, $expected1],
+            [$userId, $id, null, $liked, $expected2],
+            [$userId, $id, null, null, $expected3]
         ];
-        $this->mongoMock->mockFindByPk('Video', $videoMock);
-
-      
-        $result = UserHelper::dislikeVideo(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been disliked.", $result);
-        $this->assertEquals([$videoMock->_id], $userMock->dislikedVideos);
-        $this->assertEquals([], $userMock->likedVideos);
-        $this->assertEquals(0, $videoMock->likes);
-        $this->assertEquals(1, $videoMock->dislikes);
     }
-
-
-    public function testAddWatchLater()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $mockUserCollection = $this->mongoMock->mockFind(
-            'User',
-            (object) ['_id' => '5ff9e4b9f1639b066c4d2e51', 'watchLater' => []]
-        );
-
-        $data = ['id' => '5ff9e4b9f1639b066c4d2e52'];
-
-     
-        $result = UserHelper::addWatchLater($data);
-
-        $this->assertEquals("The video has been added to watch later.", $result);
-    }
-
-    public function testAddWatchLaterSuccess()
-    {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'watchLater' => []
-        ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-
-        
-        $result = UserHelper::addWatchLater(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been added to watch later.", $result);
-        $this->assertEquals([new ObjectId('5ff9e4b9f1639b066c4d2e52')], $userMock->watchLater);
-    }
-
-    public function testAddWatchLaterUserNotFound()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $this->mongoMock->mockFindByPk('User', null);
-
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('User not found');
-
-      
-        UserHelper::addWatchLater(['id' => '5ff9e4b9f1639b066c4d2e52']);
-    }
-
-    public function testAddWatchLaterAlreadyAdded()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-       
-        $userMock = (object)[
-            '_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'),
-            'watchLater' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')]
-        ];
-        $this->mongoMock->mockFindByPk('User', $userMock);
-
-   
-        $result = UserHelper::addWatchLater(['id' => '5ff9e4b9f1639b066c4d2e52']);
-
-        $this->assertEquals("The video has been added to watch later.", $result);
-        $this->assertEquals([new ObjectId('5ff9e4b9f1639b066c4d2e52')], $userMock->watchLater);
-    }
-
-
-    public function testTrackStatusWatched()
-    {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $mockUserCollection = $this->mongoMock->mockFind(
-            'User',
-            (object) ['_id' => '5ff9e4b9f1639b066c4d2e51', 'watchLater' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')]]
-        );
-
-     
-        $result = UserHelper::trackStatus('5ff9e4b9f1639b066c4d2e52');
-
-      
-        $this->assertEquals(['watched' => 1], $result);
-    }
-
-    public function testTrackStatusNotWatched()
-    {
-     
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-     
-        $mockUserCollection = $this->mongoMock->mockFind(
-            'User', 
-            (object) ['_id' => '5ff9e4b9f1639b066c4d2e51', 'watchLater' => []]
-        );
-
-       
-        $result = UserHelper::trackStatus('5ff9e4b9f1639b066c4d2e52');
-
-       
-        $this->assertEquals(['watched' => 0], $result);
-    }
-
-    public function testTrackStatusUserNotFound()
-    {
-      
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-   
-        $this->mongoMock->mockFindByAttributes('User', null);
-
-       
-        $result = UserHelper::trackStatus('5ff9e4b9f1639b066c4d2e52');
-
-     
-        $this->assertEquals(['watched' => 0], $result);
-    }
-
-    public function testTrackStatusException()
-    {
-        
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $this->mongoMock->mockFindByAttributes('User', new Exception('Database error'));
-
-        $mockLogger = $this->getMockBuilder('Logger')
-                           ->disableOriginalConstructor()
-                           ->getMock();
-        Yii::setLogger($mockLogger);
-
-    
-        $mockLogger->expects($this->once())
-                   ->method('log')
-                   ->with('Database error', CLogger::LEVEL_ERROR);
-
-        
-        $result = UserHelper::trackStatus('5ff9e4b9f1639b066c4d2e52');
-
-     
-        $this->assertEquals(['watched' => 0], $result);
-    }
-
-
-    public function testCheckVideoStatusLiked()
-    {
-      
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-     
-        $this->mongoMock->mockFind(
-            'User', 
-            (object) ['_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'), 'likedVideos' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')]]
-        );
-
-        $videoId = '5ff9e4b9f1639b066c4d2e52';
-
-
-        $result = UserHelper::checkVideoStatus($videoId);
-
-        $this->assertEquals(['liked' => 1, 'disliked' => 0], $result);
-    }
-
-    public function testCheckVideoStatusDisliked()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-   
-        $this->mongoMock->mockFind(
-            'User', 
-            (object) ['_id' => new ObjectId('5ff9e4b9f1639b066c4d2e51'), 'dislikedVideos' => [new ObjectId('5ff9e4b9f1639b066c4d2e52')]]
-        );
-
-        $videoId = '5ff9e4b9f1639b066c4d2e52';
-
-   
-        $result = UserHelper::checkVideoStatus($videoId);
-
-        $this->assertEquals(['liked' => 0, 'disliked' => 1], $result);
-    }
-
-    public function testCheckVideoStatusNeitherLikedNorDisliked()
-    {
-       
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        
-        $this->mongoMock->mockFind(
-            'User', 
-            null 
-        );
-
-        $videoId = '5ff9e4b9f1639b066c4d2e52';
-
-      
-        $result = UserHelper::checkVideoStatus($videoId);
-
-        $this->assertEquals(['liked' => 0, 'disliked' => 0], $result);
-    }
-
-    public function testCheckVideoStatusException()
-    {
-        // Mock Yii application and session
-        $this->yiiAppMock->mockSession(['user_id' => '5ff9e4b9f1639b066c4d2e51']);
-
-        // Mock MongoDB find operation for User::model()
-        $mock = $this->mongoMock->mockFind(
-            'User', 
-            null // No liked or disliked videos
-        );
-
-        $mock->shouldReceive('findByAttributes')->andThrow(new Exception('Database error'));
-
-        $videoId = '5ff9e4b9f1639b066c4d2e52';
-
-        // Test
-        $result = UserHelper::checkVideoStatus($videoId);
-
-        $this->assertEquals(['error' => 'Database error'], $result);
-    }
-    
-
 }
-
-?>

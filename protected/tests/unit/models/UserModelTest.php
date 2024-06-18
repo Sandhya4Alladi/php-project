@@ -1,6 +1,7 @@
 <?php
  
 use Mockery\Adapter\Phpunit\MockeryTestCase;
+use Mockery as m;
  
 class UserModelTest extends MockeryTestCase
 {
@@ -11,14 +12,19 @@ class UserModelTest extends MockeryTestCase
         parent::setUp();
         $this->user = new User();
     }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+    }
  
     public function testValidationRules()
     {
-        // Required fields
+     
         $this->user->username = null;
         $this->user->email = null;
         $this->user->password = null;
-        
+ 
         $this->assertFalse($this->user->validate());
         $this->assertArrayHasKey('username', $this->user->getErrors());
         $this->assertArrayHasKey('email', $this->user->getErrors());
@@ -33,46 +39,45 @@ class UserModelTest extends MockeryTestCase
         $this->assertIsArray($user->watchLater);
     }
  
-    public function testBeforeSave()
+    
+    public function testBeforeSaveNewRecord()
     {
-        $this->user->username = "testuser";
-        $this->user->email = "test@example.com";
-        $this->user->password = "password";
+        $user = m::mock('User[getIsNewRecord, parent::beforeSave, updateTimestamps]')
+                 ->makePartial()
+                 ->shouldAllowMockingProtectedMethods();
+        $user->shouldReceive('getIsNewRecord')->andReturn(true);
+        $user->shouldReceive('parent::beforeSave')->andReturn(true);
+        $user->shouldReceive('updateTimestamps')->once()->passthru();
  
-        $this->assertTrue($this->user->save());
+        $result = $user->beforeSave();
  
-        $this->assertNotNull($this->user->createdAt);
-        $this->assertNotNull($this->user->updatedAt);
- 
-        $createdAt = $this->user->createdAt;
- 
-        // Simulate update
-        $this->user->email = "updated@example.com";
-        $this->assertTrue($this->user->save());
- 
-        $this->assertEquals($createdAt, $this->user->createdAt);
-        $this->assertNotEquals($createdAt, $this->user->updatedAt);
+        $this->assertTrue($result);
+        $this->assertNotNull($user->createdAt);
+        $this->assertNotNull($user->updatedAt);
+        $this->assertEquals($user->createdAt, $user->updatedAt);
     }
  
-    public function testSave()
+    public function testBeforeSaveExistingRecord()
     {
-        $this->user->username = "testuser";
-        $this->user->email = "test@example.com";
-        $this->user->password = "password";
+        $user = m::mock('User[getIsNewRecord, parent::beforeSave, updateTimestamps]')
+                 ->makePartial()
+                 ->shouldAllowMockingProtectedMethods();
+        $user->shouldReceive('getIsNewRecord')->andReturn(false);
+        $user->shouldReceive('parent::beforeSave')->andReturn(true);
+        $user->shouldReceive('updateTimestamps')->once()->passthru();
  
-        $this->assertTrue($this->user->save());
-        $this->assertNotNull(User::model()->findByPk($this->user->_id));
-    }
+        $createdAt = new MongoDate(strtotime('-1 day'));
+        $user->createdAt = $createdAt;
  
-    protected function tearDown(): void
-    {
-        if (!$this->user->getIsNewRecord()) {
-            $this->user->delete();
-        }
-        parent::tearDown();
+        $result = $user->beforeSave();
+ 
+        $this->assertTrue($result);
+        $this->assertNotNull($user->updatedAt);
+        $this->assertEquals($createdAt, $user->createdAt);
+        $this->assertNotEquals($createdAt, $user->updatedAt);
     }
+    
+ 
 }
  
 ?>
- 
- 

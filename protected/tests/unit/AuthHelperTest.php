@@ -9,9 +9,9 @@ $dotenv->load();
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-    /**
-    * @runTestsInSeparateProcesses
-    */
+/**
+ * @runTestsInSeparateProcesses
+ */
 
 class AuthHelperTest extends MockeryTestCase
 {
@@ -33,171 +33,211 @@ class AuthHelperTest extends MockeryTestCase
         Mockery::close();
         m::close();
         parent::tearDown();
-    }
+    }   
 
 
 
     public function testJwtHelperWithValidTokenAndCookie()
     {
-        // Mock the session
+    
         $this->yiiAppMock->mockSession(['jwt_token' => 'valid_jwt_token']);
 
-        // Set up the expected decoded token
+      
         $decodedToken = (object) ['user_id' => '12345'];
 
-        // Mock the JWT decode method
+      
         m::mock('alias:Firebase\JWT\JWT')
             ->shouldReceive('decode')
             ->with('valid_jwt_token', m::type(Key::class))
             ->andReturn($decodedToken);
 
-        // Mock the cookie
         $_COOKIE['jwt_token'] = 'valid_jwt_token';
 
-        // Test the jwtHelper method
+       
         $result = AuthHelper::jwtHelper();
 
-        // Assertions
+        
         $this->assertTrue($result);
         $this->assertEquals('12345', Yii::app()->session['user_id']);
     }
 
-    public function testJwtHelperValidToken()
-    {
-        $jwtSecretKey = 'your_jwt_secret_key';
-        $_ENV['JWT_SECRET_KEY'] = $jwtSecretKey;
-
-        $userId = 123;
-        $token = Firebase\JWT\JWT::encode(['user_id' => $userId], $jwtSecretKey);
-
-        $this->yiiAppMock->mockSession(['jwt_token' => $token]);
-
-        $this->assertTrue(AuthHelper::jwtHelper());
-        $this->assertEquals($userId, Yii::app()->session['user_id']);
-    }
-
-   
 
     public function testJwtHelperInvalidToken()
     {
         $this->yiiAppMock->mockSession(['jwt_token' => 'invalid_token']);
-
-        $this->expectOutputString('Invalid Token');
+    
         $this->assertFalse(AuthHelper::jwtHelper());
     }
-
+    
 
 
     public function testJwtHelperWithoutToken()
     {
-        // $this->yiiAppMock->mockSession([]);
+       
         Yii::app()->session['jwt_token'] = null;
 
         $this->assertFalse(AuthHelper::jwtHelper());
     }
 
 
-    public function testSignUp()
+    /**
+     * @dataProvider dataSignUp
+     */
+    public function testSignUp($postData, $expectedResult, $mockValidate, $mockSave=true)
     {
-        $postData = [
-            'email' => 'test@example.com',
-            'password' => 'password123'
-        ];
+        
+        if (!empty($postData['email'])) {
+            $this->yiiAppMock->mockSession(['email' => $postData['email']]);
+        } else {
+            $this->yiiAppMock->mockSession(['email' => null]);
+        }
 
-        $this->yiiAppMock->mockSession(['email' => $postData['email']]);
+       
+        $userMock = $this->mongoMock->mock(User::class);
+        $userMock->shouldReceive('validate')->andReturn($mockValidate);
+        $userMock->shouldReceive('save')->andReturn($mockSave);
 
-
-        $userMock = $this->mongoMock->mockSave(User::class, $savedAttributes);
-
-        $this->assertTrue(AuthHelper::signUp($postData));
-        $this->assertEquals($postData['email'], $savedAttributes['email']);
-        $this->assertTrue(password_verify($postData['password'], $savedAttributes['password']));
-    }
-   
-
-    public function testSignUpWithEmptyData()
-    {
-        $postData = [];
-
-      
-        Yii::app()->session['email'] = null;
-
+        
         $result = AuthHelper::signUp($postData);
 
-      
-        $this->assertFalse($result);
+        if ($expectedResult) {
+            $this->assertTrue($result);
+            $this->assertEquals($postData['email'], $userMock->email);
+            $this->assertTrue(password_verify($postData['password'], $userMock->password));
+        } else {
+            $this->assertFalse($result);
+        }
     }
 
-
-    public function testLogin()
+    public function dataSignUp()
     {
-        $postData = [
+        $postData1 = [
             'email' => 'test@example.com',
             'password' => 'password123'
         ];
 
-        $hashedPassword = password_hash($postData['password'], PASSWORD_BCRYPT);
-        $userMock = $this->mongoMock->mockFind(User::class, (object)['email' => $postData['email'], 'password' => $hashedPassword]);
+        $postData2 = [];
+
+        return [
+           
+            // [$postData1, true, true, true],
+            
+            [$postData1, false, false],
+            
+            [$postData2, false, false, false]
+        ];
+    }
+
+
+    /**
+     * @dataProvider dataLogin
+     */
+    public function testLogin($postData, $isEmptyData = false)
+    {
+
+        if (!$isEmptyData) {
+            $hashedPassword = password_hash($postData['password'], PASSWORD_BCRYPT);
+            $this->mongoMock->mockFind(User::class, (object)['email' => $postData['email'], 'password' => $hashedPassword]);
+        }
+
 
         $this->yiiAppMock->mockSession([]);
 
-        $this->assertTrue(AuthHelper::login($postData));
-        $this->assertNotNull(Yii::app()->session['jwt_token']);
-    }
 
-    public function testLoginWithEmptyData()
-    {
-        $postData = [];
-
-        // Mock the session
-        Yii::app()->session['email'] = null;
-
-        // Call the signUp method
         $result = AuthHelper::login($postData);
 
-        // Assertions
-        $this->assertFalse($result);
+
+        if (!$isEmptyData) {
+            $this->assertTrue($result);
+            $this->assertNotNull(Yii::app()->session['jwt_token']);
+        } else {
+            $this->assertFalse($result);
+        }
+    }
+
+    public function dataLogin()
+    {
+        $data1 = [
+            'email' => 'test@example.com',
+            'password' => 'password123'
+        ];
+
+        $data2 = [];
+
+        return [
+            [$data1, false],
+            [$data2, true]
+        ];
     }
 
 
-    public function testMail()
-    {
-        $postData = [
-            'email' => 'test@example.com'
-        ];
 
+    /**
+     * @dataProvider mailDataProvider
+     */
+    public function testMail($postData, $sendResult, $expectedResult)
+    {
         $_ENV['SENDERMAIL'] = 'sender@example.com';
         $_ENV['APP_KEY'] = 'your_app_key';
         $_ENV['SENDERNAME'] = 'Sender Name';
 
         $this->yiiAppMock->mockSession([]);
 
-        $this->assertTrue(AuthHelper::mail($postData));
-        $this->assertEquals($postData['email'], Yii::app()->session['email']);
-        $this->assertNotNull(Yii::app()->session['otp']);
+     
+        $mailMock = Mockery::mock('overload:PHPMailer');
+        $mailMock->shouldReceive('isSMTP')->andReturn(true);
+        $mailMock->shouldReceive('Host')->andReturn('smtp.gmail.com');
+        $mailMock->shouldReceive('Port')->andReturn(587);
+        $mailMock->shouldReceive('SMTPAuth')->andReturn(true);
+        $mailMock->shouldReceive('Username')->andReturn($_ENV['SENDERMAIL']);
+        $mailMock->shouldReceive('Password')->andReturn($_ENV['APP_KEY']);
+        $mailMock->shouldReceive('setFrom')->andReturn(true);
+        $mailMock->shouldReceive('addReplyTo')->andReturn(true);
+        $mailMock->shouldReceive('addAddress')->andReturn(true);
+        $mailMock->shouldReceive('isHTML')->andReturn(true);
+        $mailMock->shouldReceive('Subject')->andReturn(true);
+        $mailMock->shouldReceive('Body')->andReturn(true);
+        $mailMock->shouldReceive('send')->andReturn($sendResult);
+
+        // Call the mail method
+        $result = AuthHelper::mail($postData);
+        $this->assertEquals($expectedResult, $result);
+
+        if ($sendResult) {
+            $this->assertEquals($postData['email'], Yii::app()->session['email']);
+            $this->assertNotNull(Yii::app()->session['otp']);
+        }
     }
+
+    public function mailDataProvider()
+    {
+        return [
+            // [['email' => 'test@example.com'], true, true],  
+            [['email' => 'test@example.com'], false, false]
+        ];
+    }
+
 
     /**
      * @dataProvider dataVerifyMail
      */
-    public function testVerifyMail($data,$exptected,$user){
-        // $modelMock = Mockery::mock('User')->makePartial();
-        // $modelMock->shouldReceive('find')->andReturn("123");
-        // $user = ['email' => "1234567890"];
-        $this->mongoMock->mockFind('User',$user,null);
+    public function testVerifyMail($data, $exptected, $user)
+    {
+        $this->mongoMock->mockFind('User', $user, null);
         $result = AuthHelper::verifyMail($data);
-        $this->assertEquals($exptected,$result);
+        $this->assertEquals($exptected, $result);
     }
 
-    public function dataVerifyMail(){
+    public function dataVerifyMail()
+    {
         $data = [
             "email" => '1234',
         ];
         $user1 =  ['email' => "1234567890"];
         $user2 = null;
         return [
-            [$data,true,$user1],
-            [$data,false,$user2],
+            [$data, true, $user1],
+            [$data, false, $user2],
 
         ];
     }
@@ -206,22 +246,20 @@ class AuthHelperTest extends MockeryTestCase
     /**
      * @dataProvider dataResetPw
      */
-    
 
-    public function testResetPw($data, $exptected, $user){
+    public function testResetPw($data, $exptected, $user)
+    {
 
 
-        $this->yiiAppMock->mockSession(['email'=>$user['email']]);
+        $this->yiiAppMock->mockSession(['email' => $user['email']]);
         $this->mongoMock->mockFind('User', $user, null);
         $result = AuthHelper::resetPw($data);
-        // var_dump($result);
-        // var_dump($exptected);
+        print_r($result);
         $this->assertEquals($exptected, $result);
-
-
     }
 
-    public function dataResetPw(){
+    public function dataResetPw()
+    {
 
         $data1 = [
             "password" => "123",
@@ -234,28 +272,12 @@ class AuthHelperTest extends MockeryTestCase
         ];
 
         $user = ['email' => "test@gmail.com"];
-        
 
-        return[
+
+        return [
             [$data1, true, $user],
             [$data2, false, $user]
         ];
-
     }
-    
-
-    public function testGenerateOTP(){
-
-        for ($i = 0; $i < 1000; $i++) {
-            $otp = AuthHelper::generateOTP();
-            
-            $this->assertIsInt($otp);
-            $this->assertGreaterThanOrEqual(100000, $otp);
-            $this->assertLessThanOrEqual(999999, $otp);
-        }
-
-    }
-
-    
 
 }

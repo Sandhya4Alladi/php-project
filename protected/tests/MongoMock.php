@@ -141,7 +141,7 @@ class MongoMock
     public function mockAggregate(string $model_class, $mock_value = null)
     {
         $mock = $this->mock($model_class);
-        $mock->shouldReceive('aggregate')->andReturn($mock_value);
+        $mock->shouldReceive('aggregate')->andReturn(new ArrayIterator($mock_value));
         return $mock;
     }
 

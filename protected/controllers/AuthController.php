@@ -139,8 +139,8 @@ use PHPMailer\PHPMailer\PHPMailer;
         
                 $result = AuthHelper::resetPw($data);
 
-                    if($result!==null){
-                        if($result->save())
+                    if($result){
+                       
                         echo json_encode(array('status' => 'success', 'message' => 'password reset successfully'));
                     }
                     else{

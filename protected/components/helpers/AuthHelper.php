@@ -9,51 +9,58 @@ use PHPMailer\PHPMailer\PHPMailer;
         public static function jwtHelper(){
             $token = Yii::app()->session['jwt_token'];
             if($token){
-            $secretKey = $_ENV['JWT_SECRET_KEY'];
-            try{
-                $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
-                if($decoded && isset($_COOKIE['jwt_token'])){
-                    $user_id = $decoded->user_id;
-                    Yii::app()->session['user_id'] = $user_id;
-                    return true;
-                }
-            }   
-                catch(Exception $e){
+                $secretKey = $_ENV['JWT_SECRET_KEY'];
+                try{
+                    $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
+                    if($decoded && isset($_COOKIE['jwt_token'])){
+                        $user_id = $decoded->user_id;
+                        Yii::app()->session['user_id'] = $user_id;
+                        return true;
+                    }
+                } catch(Exception $e){
                     header('HTTP/1.0 403 Forbidden');
                     echo 'Invalid Token';
                     return false;
                 }
-            }else{
+            } else {
                 return false;
             }
         }
+        
 
-       public static function signUp($postData){
-
-           $model = new User();
-           if(!empty($postData)){
-
+        public static function signUp($postData)
+        {
+            // Check if postData is empty
+            if (empty($postData)) {
+                return false;
+            }
+        
+            $model = new User();
             $model->attributes = $postData;
             $model->email = Yii::app()->session['email'];
             $model->password = password_hash($model->password, PASSWORD_BCRYPT);
-
+        
+           
             if ($model->validate()) {
+              
                 if ($model->save()) {
                     return true;
-                } 
-            }
-            else{
+                } else {
+                    return false;
+                }
+            } else {
                 return false;
             }
-           }
-           return false;
-
-       }
+        }
+        
 
 
        public static function login($postData){
 
-        if(!empty($postData)){
+            if (empty($postData)) {
+                return false;
+            }
+
             $email = $postData['email'];
             $password = $postData['password'];
             $user = User::model()->findByAttributes(array('email' => $email));
@@ -74,20 +81,20 @@ use PHPMailer\PHPMailer\PHPMailer;
                         }
                 }
 
-            }
+            
 
         }
-        return false;
+        
         
     }
 
         public static function mail($data){
 
                 $otp = self::generateOTP();
-                Yii::app()->session['otp'] = $otp; //session
+                Yii::app()->session['otp'] = $otp; 
                
                 $email = $data['email'];
-                Yii::app()->session['email'] = $email; //session
+                Yii::app()->session['email'] = $email; 
                 $mail = new PHPMailer;
                 $mail->isSMTP();
                 $mail->Host = 'smtp.gmail.com';
@@ -137,11 +144,10 @@ use PHPMailer\PHPMailer\PHPMailer;
                     $user = User::model()->find($criteria);
                     if ($user !== null) {
                         $user->password = $hashed_pw;
+                        $user->save();
                        
-                        return $user;
+                        return true;
                     }
-
-
                    
                 }
                 else{
